@@ -55,12 +55,12 @@ In cmd::
   venv\Scripts\activate   # or venv/bin/activate on Linux
   python -m pip install --upgrade pip
   
-Then if you wish to get the original project 3rd parties libraries:
+Then if you wish to get the original project 3rd parties libraries::
 
   pip install -r requirements.txt
   
 Otherwise, if you wish to install 3rd parties libraries from scratch
-(it means: updated versions):
+(it means: updated versions)::
 
   pip install flask
   pip install python-dotenv
@@ -126,14 +126,14 @@ respond using your language is another pair of sleeves.
 Test
 --------------------
 
-To run unit tests. In cmd:
+To run unit tests. In cmd::
 
   cd flask_covid
   venv\Scripts\activate   # or venv/bin/activate on Linux
   cd tests
   python unit_tests.py
 
-To run functional tests. In cmd:
+To run functional tests. In cmd::
 
   cd flask_covid
   venv\Scripts\activate   # or venv/bin/activate on Linux
