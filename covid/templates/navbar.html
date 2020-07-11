@@ -1,0 +1,41 @@
+
+<div class="rsts-header">
+  <div class="rsts-brand"> <!-- +container-fluid -->
+    <a class="navbar-brand soiola" href="https://luciano.defalcoalfano.it">
+        <!-- warning: use 'url_for' to get static resources, otherwise it could fail on some template(s) -->
+        <img src="{{  url_for('static', filename='images/avatar.jpg') }}" alt="ldfa website" style="width:52px;height:52px;border:0;padding:0;">
+    </a>
+  </div>
+  <div class="soiola" style="float:left;">
+    <div class="container-fluid d-none d-sm-block soiola">
+      <h4 class="soiola" style="text-align:center;color:DarkSlateBlue;">{{ config.SITE.WTITLE }}
+      </h4>
+    </div>
+    <nav class="navbar navbar-default soiola">
+        <div class="container-fluid">
+                <ul class="list-inline">
+                    <li class="list-inline-item"><a href="{{ url_for('views.index') }}">{{ _('Covid Section') }}</a>&nbsp;</li>
+                    <li class="list-inline-item"><a href="https://luciano.defalcoalfano.it">Blog</a>&nbsp;</li>
+                    <!-- <li class="list-inline-item"><a href="{{ url_for('views.select') }}">{{ _('Select') }}</a></li> -->
+                    
+                    
+                    <li class="dropdown soiola list-inline-item">        <!-- Select submenu -->
+                        <a class="dropdown-toggle soiola" data-toggle="dropdown" href="#">{{ _('Select') }}<span class="caret"></span></a>
+                        <ul class="dropdown-menu soiola">
+                            <li class="nav-item soiola">  <!-- Select submenu / Countries -->
+                              <a class="nav-link soiola" href="{{ url_for('views.select') }}" style="border:0;padding:2px;">{{ _('Countries/Continents') }}</a>
+                            </li>
+                            <!-- <li class="divider"><hr></li> -->
+                            <li class="nav-item soiola">  <!-- Select submenu / World -->
+                              <a class="nav-link soiola" href="{{ url_for('views.other_select') }}" style="border:0;padding:2px;">{{ _('World ...') }}</a>
+                            </li>
+                        </ul>
+                    </li>
+
+
+                </ul>
+        </div>
+    </nav>
+  </div>
+</div>
+
