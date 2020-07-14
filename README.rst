@@ -133,14 +133,7 @@ To run unit tests. In cmd::
   cd tests
   python unit_tests.py
 
-To run functional tests. In cmd::
-
-  cd flask_covid
-  venv\Scripts\activate   # or venv/bin/activate on Linux
-  cd tests
-  python unit_tests.py
-  
-If you have geckodriver installed on your system, to run fuctional tests,
+To run fuctional tests, you need Geckodriver installed in your system, then
 in cmd as usual::
 
   cd flask_covid
