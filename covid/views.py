@@ -156,6 +156,8 @@ def select():
                                )
                        )
 
+    #breakpoint() #<
+    
     #form.fields.data = ['1']                            # this sets a default value
     time_range = forms.TimeRange(FIRST, LAST)
     form.first.validators.append(time_range)
@@ -289,7 +291,7 @@ def draw_graph(contest, ids, fields='cases', normalize=False, overlap=False, fir
         localities = [ k for k in models.AREAS[not_regular_name]['nations'].keys()]           # ids of countries forming item of area
         # ... calculating area population
         df_nrc  = g.df[g.df['geoId'].isin(localities)]           
-        population = df_nrc[['countriesAndTerritories', 'popData2018']].drop_duplicates().sum()['popData2018']
+        population = df_nrc[['countriesAndTerritories', 'popData2019']].drop_duplicates().sum()['popData2019']
         # ... grouping by date and adding new cols to new df
         grouped = df_nrc.groupby(by='dateRep', as_index=False)
         df_tmp['dateRep'] = grouped.groups       # 1st col: dates
@@ -305,7 +307,7 @@ def draw_graph(contest, ids, fields='cases', normalize=False, overlap=False, fir
         df_tmp['countriesAndTerritories'] = not_regular_name[:]
         df_tmp['geoId']                   = models.AREAS[not_regular_name]['geoId']
         df_tmp['countryterritoryCode']    = models.AREAS[not_regular_name]['countryterritoryCode']
-        df_tmp['popData2018']             = population
+        df_tmp['popData2019']             = population
         df_tmp['continentExp']            = models.AREAS[not_regular_name]['continentExp']
         # ... new df ready, now we append it to the original df
         g.df = pd.concat([g.df, df_tmp])
