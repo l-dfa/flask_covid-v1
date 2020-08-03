@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% set TOOLTIP_TITLE = _('To select more items, hold the Ctrl key while click on them') %}
+
+{% block content %}
+    <div class="container" style="background-color:WhiteSmoke;overflow-y:auto;">
+        <form action="" method="post" novalidate>
+            <div class="row">
+                <div class="col-12">
+                    <h5>{{ _('Please, select below the query you wish to plot') }}</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="row">
+                        <div class="col-md-12">
+                            {{ form.hidden_tag() }}
+                            <p><span  style="font-style: italic;text-decoration: underline;">{{_('Kind of information') }}</span>
+                               {{_('to display for selected query') }}.
+                               <a data-toggle="collapse" href="#explainInfo">{{ _('More info') }} ...</a>
+                            </p>
+                            <div class="collapse" id="explainInfo">
+                                <p>
+                                {% for field in all_fields.keys() %}
+                                    <span style="font-weight: bold;">{{field}}</span> {{ all_fields[field]['explanation'] }}{% if loop.index != loop.length %};<br>{% endif%}
+                                {% endfor %}.
+                                </p>
+                                
+                            </div>
+                            <p>
+                                {# {{ form.fields.label }}<br> #}
+                                {{ form.fields(size=3, **{ 'data-toggle': 'tooltip',
+                                                           'data-placement': 'top',
+                                                           'data-delay': 1500,
+                                                           'title': TOOLTIP_TITLE
+                                                         }
+                                               )
+                                }}<br>
+                                {% for error in form.fields.errors %}
+                                <span style="color: red;">[{{ error }}]</span>
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><span  style="font-style: italic;text-decoration: underline;">{{_('Time interval') }}</span>
+                               {{_('to show') }}.
+                               <a data-toggle="collapse" href="#explainDate">{{ _('More info') }} ...</a>
+                            </p>
+                            <div class="collapse" id="explainDate">
+                                <p>
+                                    <span style="font-weight: bold;">first</span> {{ _('is the initial day to plot') }},
+                                    <br>
+                                    <span style="font-weight: bold;">last</span>   {{ _('is the final day to plot') }}.
+                                    <br>
+                                    {{_('Date format is year-month-day: yyyy-mm-dd')}}.
+                                </p>
+                            </div>
+                            <p>
+                                {{ form.first.label }}: <span style="position: absolute; left:60px;">{{ form.first }}</span><br>
+                                {% for error in form.first.errors %}
+                                    <span style="color: red;">[{{ error }}]</span>
+                                {% endfor %}<br>
+                                {{ form.last.label }}: <span style="position: absolute; left:60px;">{{ form.last }}</span><br>
+                                {% for error in form.last.errors %}
+                                    <span style="color: red;">[{{ error }}]</span>
+                                {% endfor %}
+                                
+                            </p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><span  style="font-style: italic;text-decoration: underline;">{{_('Type of query')}}</span> {{_('to select') }}.
+                               <a data-toggle="collapse" href="#explainQuery">{{ _('More info') }} ...</a>
+                            </p>
+                        <div class="collapse" id="explainQuery">
+                            <p>
+                            <span style="font-weight: bold;">world</span>    {{ _('gives observations about all the world') }},
+                            </p>
+                        </div>
+                            <p>
+                                {# {{ form.fields.label }}<br> #}
+                                {{ form.query(**{ 'id':    'query',
+                                                    'style': 'list-style-type:none;padding:0;margin:0;',
+                                                  }
+                                               ) }}<br>
+                                {% for error in form.query.errors %}
+                                <span style="color: red;">[{{ error }}]</span>
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <p>{{ form.submit(**{'class': 'btn btn-primary'}) }}</p>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+
+{% block javascript %}
+    <script>
+        $(function (){$('[data-toggle="tooltip"]').tooltip()} )</script>
+    <script>
+        $(function() {
+                var in_contest = $("input[name=contest]:checked").val();
+                if(in_contest=='nations'){
+                    document.getElementById('nations').disabled = false;
+                    document.getElementById('continents').selectedIndex = -1
+                    document.getElementById('continents').disabled = true;
+                    }
+                else if(in_contest=='continents'){
+                    document.getElementById('nations').selectedIndex = -1;
+                    document.getElementById('nations').disabled = true;
+                    document.getElementById('continents').disabled = false;
+                    }
+                }) 
+    </script>
+    <script>
+        $(function() {
+            $('#contest li').click( function() {
+                var in_contest = $("input[name=contest]:checked").val();
+                console.log(in_contest);
+                if(in_contest=='nations'){
+                    document.getElementById('nations').disabled = false;
+                    document.getElementById('continents').selectedIndex = -1
+                    document.getElementById('continents').disabled = true;
+                    }
+                else if(in_contest=='continents'){
+                    document.getElementById('nations').selectedIndex = -1;
+                    document.getElementById('nations').disabled = true;
+                    document.getElementById('continents').disabled = false;
+                    }
+                }) })
+    </script>
+{% endblock %}

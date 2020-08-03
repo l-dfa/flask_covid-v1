@@ -9,6 +9,7 @@ from datetime import date
 
 
 # 3rd parties libs import
+from flask import     current_app
 from flask_wtf   import FlaskForm
 from flask_babel import _
 from flask_babel import lazy_gettext as _l
@@ -52,26 +53,36 @@ class TimeRange(object):
     note. it uses datetime.date as internal data
     '''
     def __init__(self, first=None, last=None, message=None):
+        fname = 'TimeRange().__init__'
+        current_app.logger.debug('> {}(self,first={},last={},message={})'.format(fname, first, last, message))
         if not first:
             first = date.today()
         if not last:
             last = date.today()
-        self.first = first
-        self.last  = last
         if not message:
             message = _l('Field must be between %s and %s') % (first.strftime('%Y-%m-%d'), last.strftime('%Y-%m-%d'),)
+        self.first = first
+        self.last  = last
         self.message = message
         
     def set_first(self, first):
+        fname = 'TimeRange().set_first'
+        current_app.logger.debug('> {}(self,{})'.format(fname, first))
         self.first = first
 
     def set_last(self, last):
+        fname = 'TimeRange().set_last'
+        current_app.logger.debug('> {}(self,{})'.format(fname, last))
         self.last = last
 
     def __call__(self, form, field):
+        fname = 'TimeRange().__call__'
+        current_app.logger.debug('> {}(self,{},{})'.format(fname, form, field))
         f = field.data and field.data<self.first
         l = field.data and field.data>self.last
+        current_app.logger.debug('= {} - field.data: {}, self.first: {}, self.last: {}, f: {}, l: {}'.format(fname, field.data, self.first, self.last, f, l))
         if f or l:
+            current_app.logger.debug('= {} - ValidationError TRIGGERED'.format(fname))
             raise ValidationError(self.message)
 
 
@@ -96,11 +107,19 @@ class SelectForm(FlaskForm):
             return False
         
         return True
+   
+   
+class OtherSelectForm(FlaskForm):
+    fields  = SelectMultipleField( _l('Type_of_fields'), validators=[InputRequired()], default=['1'])
+    first   = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')
+    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')
+    query   = RadioField( _l('Type_of_query'), validators=[InputRequired()], default='World')
+    submit  = SubmitField( _l('plot'))
+    
+    def validate_on_submit(self):
+        if not super().validate_on_submit():
+            return False
+        
+        return True
     
     
-#def build_select_form(nations):
-#    d = dict()
-#    for nation in nations:
-#        d[nation] = BooleanField(nation)
-#    d['submit'] = SubmitField( _l('plot'))
-#    return type('SForm', (FlaskForm,), d)

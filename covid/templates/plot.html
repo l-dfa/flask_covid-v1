@@ -27,27 +27,31 @@
                         <div>
                             {% if kwargs.contest == 'nations' %}
                                 <p> {{ _('about these nations') }}:</p>
-                            {% else %}
+                            {% elif kwargs.contest == 'continents'%}
                                 <p> {{ _('about these continents') }}:</p>
+                            {% else %}
+                                <p> {{ _('about all the World') }}.</p>
                             {% endif %}
-                            <ul>
-                            {%for country in countries %}
-                                <li>{{ country }}
-                                    {% if continents_composition is not none %}
-                                        <a data-toggle="collapse" href="#explain{{country}}">{{ _('More info') }} ...</a>
-                                        <br>
-                                        <div class="collapse" id="explain{{country}}">
-                                            <p style="border: 1px solid; border-radius: 5px;">
-                                            {{ _('Countries in')}} {{country}} {{_('are:')}}
-                                            {% for nation in continents_composition[country].values() %}
-                                                {{nation}} {% if loop.index != loop.length %}, {% endif%}
-                                            {% endfor %}
-                                            </p>
-                                        </div>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                            </ul>
+                            {% if kwargs.contest == 'nations' or kwargs.contest == 'continents' %}
+                                <ul>
+                                {%for country in countries %}
+                                    <li>{{ country }}
+                                        {% if continents_composition is not none %}
+                                            <a data-toggle="collapse" href="#explain{{country}}">{{ _('More info') }} ...</a>
+                                            <br>
+                                            <div class="collapse" id="explain{{country}}">
+                                                <p style="border: 1px solid; border-radius: 5px;">
+                                                {{ _('Countries in')}} {{country}} {{_('are:')}}
+                                                {% for nation in continents_composition[country].values() %}
+                                                    {{nation}} {% if loop.index != loop.length %}, {% endif%}
+                                                {% endfor %}
+                                                </p>
+                                            </div>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            {% endif %}
                         </div>
                         {% endif %}
                         

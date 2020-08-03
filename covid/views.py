@@ -115,6 +115,10 @@ def select():
     form.countries.choices = g.nations.get_for_select()
     form.countries.choices.extend( [ (v['geoId'], c, ) for c, v in models.AREAS.items() if models.AREAS[c]['contest']=='nations'] )
     form.countries.choices.sort(key=lambda x: x[1])            # sort by name
+
+    time_range = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
+    form.first.validators.append(time_range)    #+-
+    form.last.validators.append(time_range)     #+-
     
     if form.validate_on_submit():
 
@@ -159,11 +163,10 @@ def select():
     #breakpoint() #<
     
     #form.fields.data = ['1']                            # this sets a default value
-    time_range = forms.TimeRange(FIRST, LAST)
-    form.first.validators.append(time_range)
-    form.last.validators.append(time_range)
     form.first.data = FIRST # and this sets a default date
     form.last.data  = LAST
+    current_app.logger.debug('= {} - form.first.data: {}'.format(fname, form.first.data))
+    current_app.logger.debug('= {} - form.last.data: {}'.format(fname, form.last.data))
     return render_template('select.html', 
                            title=_('Select country'), 
                            all_fields=forms.FIELDS,
@@ -175,10 +178,146 @@ def select():
 
 @bp.route('/other_select', methods=['GET', 'POST'])
 def other_select():
-    '''other_select address'''
+    '''other_select address: shows some precostituited queries to selct from a form'''
+    
     fname = 'other_select'
     current_app.logger.debug('{}() using {} http method'.format(fname, request.method))
-    return _('Sorry, "other select" is not implemented yet. We\'ll be here soon ...')
+    
+    # NOT READY
+    #return 'Sorry. World select is not implemented yet. We will fix it soon.'
+
+    # SHUNT to view
+    #query = 'World'
+    #columns = 'cases-deaths-d²cases_dt²'
+    #first = FIRST
+    #last  = LAST
+    #return redirect(url_for('views.draw_query_graph', 
+    #                        query=query, 
+    #                        fields=columns, 
+    #                        normalize=False,
+    #                        first=first,
+    #                        last=last
+    #                       )
+    #               )
+    
+    # FROM HERE we go
+    form = forms.OtherSelectForm()
+    form.fields.choices = list(zip([forms.FIELDS[key]['id'] for key in forms.FIELDS.keys()], forms.FIELDS.keys()))
+    
+    form.query.choices = [('World','World',), ]
+
+    time_range = forms.TimeRange(FIRST, LAST)
+    form.first.validators.append(time_range)
+    form.last.validators.append(time_range)
+    
+    if form.validate_on_submit():
+    
+        # check query type
+        query = form.query.data[:]
+        if query == 'World':
+            pass
+        else:
+            raise ValueError(_('%(function)s: %(query)s is not a valid query', function=fname, query=query))
+            
+        # chaining names of fields to plot
+        #columns = [name for code, name in FIELDS_CHOICES if code in form.fields.data ]
+        columns = [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.fields.data ]
+        columns = '-'.join(columns)
+        
+        first = form.first.data
+        last  = form.last.data
+        
+        return redirect(url_for('views.draw_query_graph', 
+                                query=query, 
+                                fields=columns, 
+                                normalize=False,
+                                first=first,
+                                last=last
+                               )
+                       )
+    
+    form.first.data = FIRST # and this sets a default date
+    form.last.data  = LAST
+    return render_template('select_other.html', 
+                           title=_('Select a query'), 
+                           all_fields=forms.FIELDS,
+                           form=form,
+                          )
+
+
+@bp.route('/query_graph/<query>/<fields>/<normalize>/<first>/<last>')
+def draw_query_graph(query, fields='cases', normalize=False, first=None, last=None):
+    '''show countries trend
+       
+    params: 
+        - query         str - type of query: "world" by now
+        - fields        str - string of concat fields to show; e.g. cases-deaths
+        - first         str - start of time interval to draw, str format: aaaa-mm-dd
+        - last          str - end of time interval to draw, str format: aaaa-mm-dd
+    
+    functions:
+        - draw world cases
+        - draw world deaths
+    '''
+
+    fname = 'draw_query_graph'
+    current_app.logger.debug('{}({}, {}, {}, {})'.format(fname, query, fields, first, last))
+    
+    # START parameters check
+    normalize = True if normalize in {'True', 'true',} else False
+    overlap = False
+    
+    first = datetime.strptime(first, '%Y-%m-%d').date() if first is not None else FIRST
+    last  = datetime.strptime(last, '%Y-%m-%d').date() if last is not None else LAST
+    
+    #   args to return here
+    kwargs={'query':  query,
+           'fields':    fields,
+           'normalize': normalize,
+           'first':     first,
+           'last':      last,
+          }
+          
+    #   check request contest
+    if query=='World':
+        country_names = ['World',]
+        country_name_field = 'countriesAndTerritories'
+        g.df[country_name_field] = 'World'
+    else:
+        raise ValueError(_('%(function)s: query %(query)s is not allowed', function=fname, query=query))
+        
+    # END   parameters checks
+    
+    # set time interval
+    g.df = g.df[(g.df['dateRep']>=first) & (g.df['dateRep']<=last)]
+    
+    threshold = 0
+    
+    img_data, threshold = draw_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=False)
+    html_table = table_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=False)
+    html_table_last_values = table_last_values(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=overlap)
+    
+    
+    title = _('overlap') if overlap else _('plot')
+    kwargs['overlap'] = overlap
+    
+    columns = fields.split('-')
+    
+    return render_template('plot.html',
+                           title=title,
+                           time_interval=(first, last,),
+                           columns=columns,
+                           all_fields=forms.FIELDS,
+                           countries=country_names,
+                           continents_composition=None,
+                           overlap=overlap,
+                           threshold=threshold,
+                           img_data = img_data,
+                           html_table_last_values=html_table_last_values,
+                           html_table=html_table,
+                           kwargs=kwargs,
+                          )
+
 
 
 @bp.route('/graph/<contest>/<ids>/<fields>/<normalize>/<overlap>/<first>/<last>')
@@ -237,7 +376,7 @@ def draw_graph(contest, ids, fields='cases', normalize=False, overlap=False, fir
         country_field = 'continentExp'
         country_name_field = 'continentExp'
     else:
-        raise ValueError(_('%(function)s: contest %(contest)s is not allowed: ', function=fname, contest=contest))
+        raise ValueError(_('%(function)s: contest %(contest)s is not allowed', function=fname, contest=contest))
         
     #   countries: list of ids of countries or continents
     countries = ids.split('-')                         # list of ids of nations or continents
@@ -348,7 +487,7 @@ def draw_nations(df, country_name_field, country_names, fields, normalize=False,
     fields = fields.split('-')                         # list of fields to plot
     
     edf = edf.groupby(['dateRep', country_name_field]).sum()
-    
+
     if not overlap:
         threshold = 0
         sdf1 = pd.pivot_table(edf, index='dateRep',columns=country_name_field)
@@ -412,6 +551,7 @@ def prepare_target(df, country_name_field, country_names, fields, normalize=Fals
     fname = 'prepare_target'
     current_app.logger.debug(fname)
     
+    
     fields = fields.split('-')                         # list of fields to plot
     allowed = set(list(forms.FIELDS.keys()))
     if set(fields) - allowed:                          # some fields aren't allowed
@@ -424,14 +564,21 @@ def prepare_target(df, country_name_field, country_names, fields, normalize=Fals
 
     if type(normalize) is not type(True):
         raise ValueError(_('%(function)s: on parameter <normalize>', function=fname))
+        
     
     if ( type(overlap) is not type(True)
          or (overlap and len(fields)>1)
        ):
         raise ValueError(_('%(function)s: on parameter <overlap>', function=fname))
     
-        
-    sdf = df[(df[country_name_field].isin(country_names))]                # selected dataframe
+    if country_names==['World']:
+        flds = ['dateRep']
+        flds.extend(fields)
+        target  = g.df[flds].groupby(by='dateRep').sum()
+        target['countriesAndTerritories'] = 'World'
+        return target.copy()
+    else:
+        sdf = df[(df[country_name_field].isin(country_names))]                # selected dataframe
     
     # building a dataframe with the necessary data
     target = pd.DataFrame()                                                  # empty dataframe
@@ -446,8 +593,11 @@ def prepare_target(df, country_name_field, country_names, fields, normalize=Fals
     
     for field in fields:                                                  # adding fields cases&|deaths
         target[field]  = sdf[field]
-        
-    target[country_name_field] = sdf[country_name_field]                     # adding names of countries|continents
+    
+    if country_name_field=='world':
+        target[country_name_field] = 'world'                     # adding 'world'
+    else:
+        target[country_name_field] = sdf[country_name_field]                     # adding names of countries|continents
     
     # + ldfa,2020-05-17 fix bug #3
     if country_name_field=='continentExp':
@@ -485,9 +635,12 @@ def table_nations(df, country_name_field, country_names, fields, normalize=False
     
     # get specialized dataframe: only request fields and nations|continents
     edf = prepare_target(df, country_name_field, country_names, fields, normalize=False, overlap=False)
+    
+    if not 'dateRep' in edf.columns:
+        edf.reset_index(level=0, inplace=True)
     fields = fields.split('-')                         # list of fields to manage
     
-    # now we need to translate daily dates to to weeks
+    # now we need to translate daily dates to weeks
     edf['dateRep'] = pd.to_datetime(edf['dateRep'])
     edf['week'] = edf['dateRep'].dt.week    # adding week number
     edf['year'] = edf['dateRep'].dt.year    # adding year
