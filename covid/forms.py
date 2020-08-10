@@ -6,10 +6,10 @@
 
 # std libs import
 from datetime import date
-
+#import copy
 
 # 3rd parties libs import
-from flask import     current_app
+from flask       import current_app, g
 from flask_wtf   import FlaskForm
 from flask_babel import _
 from flask_babel import lazy_gettext as _l
@@ -54,7 +54,7 @@ class TimeRange(object):
     '''
     def __init__(self, first=None, last=None, message=None):
         fname = 'TimeRange().__init__'
-        current_app.logger.debug('> {}(self,first={},last={},message={})'.format(fname, first, last, message))
+        current_app.logger.debug('> {}(self={},first={},last={},message={})'.format(fname, self, first, last, message))
         if not first:
             first = date.today()
         if not last:
@@ -67,29 +67,30 @@ class TimeRange(object):
         
     def set_first(self, first):
         fname = 'TimeRange().set_first'
-        current_app.logger.debug('> {}(self,{})'.format(fname, first))
+        current_app.logger.debug('> {}(self={},{})'.format(fname, self, first))
         self.first = first
 
     def set_last(self, last):
         fname = 'TimeRange().set_last'
-        current_app.logger.debug('> {}(self,{})'.format(fname, last))
+        current_app.logger.debug('> {}(self={},{})'.format(fname, self, last))
         self.last = last
 
     def __call__(self, form, field):
         fname = 'TimeRange().__call__'
-        current_app.logger.debug('> {}(self,{},{})'.format(fname, form, field))
+        current_app.logger.debug('> {}(self={},form={},field={})'.format(fname, self, form, field))
         f = field.data and field.data<self.first
         l = field.data and field.data>self.last
         current_app.logger.debug('= {} - field.data: {}, self.first: {}, self.last: {}, f: {}, l: {}'.format(fname, field.data, self.first, self.last, f, l))
         if f or l:
-            current_app.logger.debug('= {} - ValidationError TRIGGERED'.format(fname))
+            current_app.logger.info('= {} - ValidationError TRIGGERED'.format(fname))
             raise ValidationError(self.message)
 
 
 class SelectForm(FlaskForm):
     fields  = SelectMultipleField( _l('Type_of_fields'), validators=[InputRequired()], default=['1'])
-    first   = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')
-    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')
+    first   = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')    # note: adding TimeRange() here as a validator does not work
+    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')    #    cause here we cannot get the FIRST and LAST dates to use to initialize it
+                                                                                        #    so, we'll need to append it in views
     contest = RadioField( _l('Type_of_entity'), validators=[InputRequired()], default='nations')
     continents = SelectMultipleField( _l('Countries'))
     countries  = SelectMultipleField( _l('Countries'))

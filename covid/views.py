@@ -48,7 +48,6 @@ COLORS=['tab:blue',
 FIRST = ''     # this placeholder to register the 1st day available ...
 LAST  = ''     #   ... and this to hold the last day available
 
-
 @bp.before_request
 def before_request():
     '''open data when request starts'''
@@ -61,6 +60,8 @@ def before_request():
                         models.world_shape)                     # stores dataframe in g.df
     FIRST, LAST = (df['dateRep'].min(), df['dateRep'].max(),)
     g.nations = models.Nations(dataframe=df)
+    g.first_date = df['dateRep'].min()
+    g.last_date = df['dateRep'].max()
 
 
 @bp.teardown_request
@@ -101,10 +102,13 @@ def select():
     
     fname = 'select'
     current_app.logger.debug('> {}() by {} http method'.format(fname, request.method))
+    
     form = forms.SelectForm()
     form.fields.choices = list(zip([forms.FIELDS[key]['id'] for key in forms.FIELDS.keys()], forms.FIELDS.keys()))
-    # to set a default, the following does not work; we need to use the "default" parameter in the class, or set data (see below)
-    #form.fields.default = ['1',]
+    
+    #form.fields.default = ['1',] # to set a default, this does not work;
+                                  #    we use the "default" parameter in the class;
+                                  #    alternatively we can set data (see below)
     
     form.contest.choices = [('nations','nations',), ('continents', 'continents',),]
     
@@ -116,9 +120,11 @@ def select():
     form.countries.choices.extend( [ (v['geoId'], c, ) for c, v in models.AREAS.items() if models.AREAS[c]['contest']=='nations'] )
     form.countries.choices.sort(key=lambda x: x[1])            # sort by name
 
-    time_range = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
-    form.first.validators.append(time_range)    #+-
-    form.last.validators.append(time_range)     #+-
+    if request.method=='POST':
+        time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #2 initializing TimeRange for POST
+        form.first.validators.append(time_range1)    #+-
+        form.last.validators.append(time_range1)     #+-
+
     
     if form.validate_on_submit():
 
@@ -149,6 +155,9 @@ def select():
         #contest = 'continents'
         #ids = 'Europe-America'
         
+        form.first.validators.remove(time_range1)  # fix bug #2: we need to remove timerange validators to destroy them
+        form.last.validators.remove(time_range1)   #    otherwise they will be reused in succedings calls
+        
         return redirect(url_for('views.draw_graph', 
                                 contest=contest, 
                                 ids=ids, 
@@ -159,9 +168,17 @@ def select():
                                 last=last
                                )
                        )
+    
+    try:                                           # again: removing timerange validators. see previous comment
+        if time_range1 in form.first.validators:
+            form.first.validators.remove(time_range1)
+        if time_range1 in form.last.validators:
+            form.last.validators.remove(time_range1)
+    except:
+        pass
 
     #breakpoint() #<
-    
+
     #form.fields.data = ['1']                            # this sets a default value
     form.first.data = FIRST # and this sets a default date
     form.last.data  = LAST
@@ -206,10 +223,11 @@ def other_select():
     
     form.query.choices = [('World','World',), ]
 
-    time_range = forms.TimeRange(FIRST, LAST)
-    form.first.validators.append(time_range)
-    form.last.validators.append(time_range)
-    
+    if request.method=='POST':
+        time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
+        form.first.validators.append(time_range1)    #+-
+        form.last.validators.append(time_range1)     #+-
+
     if form.validate_on_submit():
     
         # check query type
@@ -227,6 +245,9 @@ def other_select():
         first = form.first.data
         last  = form.last.data
         
+        form.first.validators.remove(time_range1)  # fix bug #2: we need to remove timerange validators to destroy them
+        form.last.validators.remove(time_range1)   #    otherwise they will be reused in succedings calls
+
         return redirect(url_for('views.draw_query_graph', 
                                 query=query, 
                                 fields=columns, 
@@ -235,6 +256,14 @@ def other_select():
                                 last=last
                                )
                        )
+    
+    try:                                           # again: removing timerange validators. see previous comment
+        if time_range1 in form.first.validators:
+            form.first.validators.remove(time_range1)
+        if time_range1 in form.last.validators:
+            form.last.validators.remove(time_range1)
+    except:
+        pass
     
     form.first.data = FIRST # and this sets a default date
     form.last.data  = LAST
