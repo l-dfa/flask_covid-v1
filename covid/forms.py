@@ -28,24 +28,41 @@ FIELDS = {
     'cases':  {'id': '1',
                'explanation': _l('are the cumulative  cases positive to the infection'),
                'short': _('cumulative positive cases'),
+               'sid': 'cases',                                 # symbolic id, to use in url
+               'delta_field': False,                           # this will be a cumulative value
+               'mean_tag': 'mean cases/day'                    # summary table column tag
               },
     'deaths': {'id': '2', 
                'explanation': _l('are the cumulative number of persons deceased due to the infection'),
                'short': _('cumulative number of deaths'),
+               'sid': 'deaths',
+               'delta_field': False,
+               'mean_tag': 'mean deaths/day'
               },
-    'd²cases_dt²': {'id': '3', 
-                    'explanation': _l('is the second derivative of cumulative positive cases; this indicates if the cases curve has upward or downward concavity'),
-                    'short': _l("concavity's orientation of cumulative positive cases"),
+    'cases/day': {'id': '3', 
+                  'explanation': _l('you can think this as the derivative of the cumulative number of cases positive to the infection; this is the steepness of the cumulative curve'),
+                  'short': _('positive cases per day'),
+                  'sid': 'cases_day',
+                  'delta_field': True,                          # this is every day value
+                  'mean_tag': 'mean cases/day'
+              },
+    '\N{Greek Capital Letter Delta}cases/day': {'id': '4', 
+                    'explanation': _l('it is the second derivative of cumulative positive cases; this indicates if the cases curve has upward (if > 0) or downward (if < 0) concavity'),
+                    'short': _l("\N{Greek Capital Letter Delta}cases per day"),
+                    'sid': '\N{Greek Capital Letter Delta}cases_day',
+                    'delta_field': True,
+                    'mean_tag': 'mean \N{Greek Capital Letter Delta}cases/day'
                    },
 }
 
 
-# + ldfa,2020-05-17 to show a summary table of chosen fields
-FIELDS_IN_TABLE = {
-    'cases': 'mean_daily_cases',
-    'deaths': 'mean_daily_deaths',
-    'd²cases_dt²': 'mean_daily_concavity',
-}
+## + ldfa,2020-05-17 to show a summary table of chosen fields
+#FIELDS_IN_TABLE = {
+#    'cases': 'mean cases/day',
+#    'deaths': 'mean deaths/day',
+#    'cases/day': 'mean cases/day',
+#    '\N{Greek Capital Letter Delta}cases/day': 'mean \N{Greek Capital Letter Delta}cases/day',
+#}
 
 
 class TimeRange(object):
@@ -53,48 +70,88 @@ class TimeRange(object):
     note. it uses datetime.date as internal data
     '''
     def __init__(self, first=None, last=None, message=None):
-        fname = 'TimeRange().__init__'
-        current_app.logger.debug('> {}(self={},first={},last={},message={})'.format(fname, self, first, last, message))
+        #fname = 'TimeRange().__init__'
+        #current_app.logger.debug('> {}(self={},first={},last={},message={})'.format(fname, self, first, last, message))
         if not first:
             first = date.today()
         if not last:
             last = date.today()
         if not message:
-            message = _l('Field must be between %s and %s') % (first.strftime('%Y-%m-%d'), last.strftime('%Y-%m-%d'),)
+            message = _l('Field must be between %s and %s') % (first.strftime('%Y-%m-%d'), last.strftime('%Y-%m-%d'))
         self.first = first
         self.last  = last
         self.message = message
         
     def set_first(self, first):
-        fname = 'TimeRange().set_first'
-        current_app.logger.debug('> {}(self={},{})'.format(fname, self, first))
+        #fname = 'TimeRange().set_first'
+        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, first))
         self.first = first
 
     def set_last(self, last):
-        fname = 'TimeRange().set_last'
-        current_app.logger.debug('> {}(self={},{})'.format(fname, self, last))
+        #fname = 'TimeRange().set_last'
+        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, last))
         self.last = last
+        
+    #+ ldfa@2020-08-17 simplifying
+    def __contains__(self, item):
+        return self.first <= item and item <= self.last
 
+    #- ldfa@2020-08-17 simplifying
+    #def __call__(self, form, field):
+    #    fname = 'TimeRange().__call__'
+    #    #current_app.logger.debug('> {}(self={},form={},field={})'.format(fname, self, form, field))
+    #    f = field.data and field.data<self.first
+    #    l = field.data and field.data>self.last
+    #    #current_app.logger.debug('= {} - field.data: {}, self.first: {}, self.last: {}, f: {}, l: {}'.format(fname, field.data, self.first, self.last, f, l))
+    #    if f or l:
+    #        current_app.logger.info('= {} - ValidationError TRIGGERED'.format(fname))
+    #        raise ValidationError(self.message)
+
+    #+ ldfa@2020-08-17 simplifying
     def __call__(self, form, field):
         fname = 'TimeRange().__call__'
-        current_app.logger.debug('> {}(self={},form={},field={})'.format(fname, self, form, field))
-        f = field.data and field.data<self.first
-        l = field.data and field.data>self.last
-        current_app.logger.debug('= {} - field.data: {}, self.first: {}, self.last: {}, f: {}, l: {}'.format(fname, field.data, self.first, self.last, f, l))
-        if f or l:
-            current_app.logger.info('= {} - ValidationError TRIGGERED'.format(fname))
+        #current_app.logger.debug('> {}(self={},form={},field={})'.format(fname, self, form, field))
+        if not field.data in self:
+            #current_app.logger.info('> {}(self={},form={},field={}) - < ValidationError TRIGGERED'.format(fname, self, form, field))
             raise ValidationError(self.message)
 
-
-class SelectForm(FlaskForm):
+class SelForm(FlaskForm):
+    '''this is a base form with common fields:
+    
+       - fields             what type of observations to show: cases, deaths, ...
+       - first, last        "from" and "to" date fields
+       - submit             the fateful "subit" button
+    '''
+    
     fields  = SelectMultipleField( _l('Type_of_fields'), validators=[InputRequired()], default=['1'])
     first   = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')    # note: adding TimeRange() here as a validator does not work
-    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')    #    cause here we cannot get the FIRST and LAST dates to use to initialize it
+    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')    #    'cause here we cannot get the FIRST and LAST dates to use to initialize it
                                                                                         #    so, we'll need to append it in views
-    contest = RadioField( _l('Type_of_entity'), validators=[InputRequired()], default='nations')
-    continents = SelectMultipleField( _l('Countries'))
-    countries  = SelectMultipleField( _l('Countries'))
     submit  = SubmitField( _l('plot'))
+    
+    def validate_on_submit(self):
+        if not super().validate_on_submit():
+            return False
+        
+        if(self.last.data<self.first.data):
+            self.last.errors.append(_l('it must be %(first)s <= %(last)s ', 
+                                       first=self.first.data.strftime('%Y-%m-%d'),
+                                       last=self.last.data.strftime('%Y-%m-%d')))
+            return False
+        
+        return True
+
+
+class SelectForm(SelForm):
+    '''form to select nation(s) or continent(s):
+    
+      adds contest     will be nations or continents
+      - continents     a list of
+      - countries      like above
+    '''
+    contest = RadioField( _l('Type_of_entity'), validators=[InputRequired()], default='nations')
+    continents = SelectMultipleField( _l('Continents'))
+    countries  = SelectMultipleField( _l('Countries'))
     
     def validate_on_submit(self):
         if not super().validate_on_submit():
@@ -110,12 +167,12 @@ class SelectForm(FlaskForm):
         return True
    
    
-class OtherSelectForm(FlaskForm):
-    fields  = SelectMultipleField( _l('Type_of_fields'), validators=[InputRequired()], default=['1'])
-    first   = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')
-    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')
+class OtherSelectForm(SelForm):
+    '''form to select some other type of query
+    
+       by now: world
+    '''
     query   = RadioField( _l('Type_of_query'), validators=[InputRequired()], default='World')
-    submit  = SubmitField( _l('plot'))
     
     def validate_on_submit(self):
         if not super().validate_on_submit():

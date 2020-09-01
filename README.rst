@@ -133,7 +133,7 @@ To run unit tests. In cmd::
   cd tests
   python unit_tests.py
 
-To run fuctional tests, you need Geckodriver installed in your system Then,
+To run fuctional tests, you need Geckodriver installed in your system. Then,
 in cmd as usual::
 
   cd flask_covid

@@ -115,6 +115,7 @@ def select():
     form.continents.choices = [ (c, c, ) for c in g.nations.keys()]
     form.continents.choices.extend( [ (c, c, ) for c in models.AREAS.keys() if models.AREAS[c]['contest']=='continents'] )
     form.continents.choices.sort(key=lambda x: x[1])            # sort by name
+    continents = [continent[1] for continent in form.continents.choices]
     
     form.countries.choices = g.nations.get_for_select()
     form.countries.choices.extend( [ (v['geoId'], c, ) for c, v in models.AREAS.items() if models.AREAS[c]['contest']=='nations'] )
@@ -137,9 +138,8 @@ def select():
         else:
             raise ValueError(_('%(function)s: %(contest)s is not a valid contest', function='select', contest=contest))
             
-        # chaining names of fields to plot
-        #columns = [name for code, name in FIELDS_CHOICES if code in form.fields.data ]
-        columns = [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.fields.data ]
+        # chaining names of fields to plot i.e.: 'cases-deaths-cases/day-\N{Greek Capital Letter Delta}cases/day'
+        columns = [forms.FIELDS[name]['sid'] for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.fields.data ]
         columns = '-'.join(columns)
         
         first = form.first.data
@@ -188,7 +188,8 @@ def select():
                            title=_('Select country'), 
                            all_fields=forms.FIELDS,
                            form=form,
-                           nations=g.nations.get_for_list()
+                           nations=g.nations.get_for_list(),
+                           continents=continents
                           )
 
 
@@ -205,7 +206,7 @@ def other_select():
 
     # SHUNT to view
     #query = 'World'
-    #columns = 'cases-deaths-d²cases_dt²'
+    #columns = 'cases-deaths-cases/day-\N{Greek Capital Letter Delta}cases/day'
     #first = FIRST
     #last  = LAST
     #return redirect(url_for('views.draw_query_graph', 
@@ -238,8 +239,7 @@ def other_select():
             raise ValueError(_('%(function)s: %(query)s is not a valid query', function=fname, query=query))
             
         # chaining names of fields to plot
-        #columns = [name for code, name in FIELDS_CHOICES if code in form.fields.data ]
-        columns = [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.fields.data ]
+        columns = [forms.FIELDS[name]['sid'] for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.fields.data ]
         columns = '-'.join(columns)
         
         first = form.first.data
@@ -299,6 +299,16 @@ def draw_query_graph(query, fields='cases', normalize=False, first=None, last=No
     first = datetime.strptime(first, '%Y-%m-%d').date() if first is not None else FIRST
     last  = datetime.strptime(last, '%Y-%m-%d').date() if last is not None else LAST
     
+    if ( first<FIRST
+         or first > last
+         or last > LAST ):
+        raise ValueError(_('%(function)s: it must be %(FIRST)s <= %(first)s <= %(last)s <= %(LAST)s',
+                             function=fname,
+                             FIRST=FIRST.strftime('%Y-%m-%d'),
+                             first=first.strftime('%Y-%m-%d'),
+                             last=last.strftime('%Y-%m-%d'),
+                             LAST=LAST.strftime('%Y-%m-%d')))
+    
     #   args to return here
     kwargs={'query':  query,
            'fields':    fields,
@@ -311,7 +321,7 @@ def draw_query_graph(query, fields='cases', normalize=False, first=None, last=No
     if query=='World':
         country_names = ['World',]
         country_name_field = 'countriesAndTerritories'
-        g.df[country_name_field] = 'World'
+        g.df['countriesAndTerritories'] = 'World'
     else:
         raise ValueError(_('%(function)s: query %(query)s is not allowed', function=fname, query=query))
         
@@ -321,6 +331,11 @@ def draw_query_graph(query, fields='cases', normalize=False, first=None, last=No
     g.df = g.df[(g.df['dateRep']>=first) & (g.df['dateRep']<=last)]
     
     threshold = 0
+    
+    #columns = fields.split('-')
+    #columns =  [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['sid'] in columns ]
+    #fields = '-'.join(columns)
+    fields = fields_from_sids_to_names(fields)
     
     img_data, threshold = draw_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=False)
     html_table = table_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=False)
@@ -347,6 +362,27 @@ def draw_query_graph(query, fields='cases', normalize=False, first=None, last=No
                            kwargs=kwargs,
                           )
 
+def fields_from_names_to_sids(fields):
+    '''converts form.FIELD names to form.FIELD symbolic ids
+    
+    param: field           str - of form.FIELD names separated by '-'
+    
+    return: str - of form.FIELD symbolic ids separated by '-'
+    '''
+    columns = fields.split('-')
+    sids = [forms.FIELDS[name]['sid'] for name in forms.FIELDS.keys() if name in columns ]
+    return '-'.join(sids)
+
+def fields_from_sids_to_names(fields):
+    '''converts form.FIELD symbolic ids to form.FIELD symbolic names
+    
+    param: field           str - of form.FIELD symbolic ids separated by '-'
+    
+    return: str - of form.FIELD names separated by '-'
+    '''
+    columns = fields.split('-')
+    names =  [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['sid'] in columns ]
+    return '-'.join(names)
 
 
 @bp.route('/graph/<contest>/<ids>/<fields>/<normalize>/<overlap>/<first>/<last>')
@@ -435,6 +471,10 @@ def draw_graph(contest, ids, fields='cases', normalize=False, overlap=False, fir
         raise ValueError(_('%(function)s: these countries/continents are unknown: %(unknown)s', function=fname, unknown=unknown))
         
     # set time interval
+    #breakpoint()   #<
+    min_date = g.df['dateRep'].min()
+    if min_date < first:
+        g.less_df = g.df[g.df['dateRep']<first]
     g.df = g.df[(g.df['dateRep']>=first) & (g.df['dateRep']<=last)]
 
     # END   parameters checks
@@ -479,6 +519,11 @@ def draw_graph(contest, ids, fields='cases', normalize=False, overlap=False, fir
         df_tmp['continentExp']            = models.AREAS[not_regular_name]['continentExp']
         # ... new df ready, now we append it to the original df
         g.df = pd.concat([g.df, df_tmp])
+        
+    #columns = fields.split('-')
+    #columns =  [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['sid'] in columns ]
+    #fields = '-'.join(columns)
+    fields = fields_from_sids_to_names(fields)
 
     img_data, threshold = draw_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=overlap)
     html_table = table_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=overlap)
@@ -504,6 +549,11 @@ def draw_graph(contest, ids, fields='cases', normalize=False, overlap=False, fir
                            kwargs=kwargs,
                           )
 
+def get_delta_fields():
+    return [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['delta_field']]
+
+def get_used_delta_fields(fields):
+    return   list(set(fields) & set(get_delta_fields()))
 
 def draw_nations(df, country_name_field, country_names, fields, normalize=False, overlap=False):
     '''prepare data to draw chosen observations and make it
@@ -527,19 +577,26 @@ def draw_nations(df, country_name_field, country_names, fields, normalize=False,
         raise ValueError(_('%(function)s: got an empty dataframe from pivot', function=fname))
     
     #sdf1 = sdf1.cumsum()
-    tmpfields = fields[:]
-    if 'd²cases_dt²' in fields:
-        tmpfields.remove('d²cases_dt²')
+    delta_fields = get_delta_fields()
+    used_delta_fields = get_used_delta_fields(fields)
+    
+    tmpfields = [field for field in fields if not field in used_delta_fields]
+    #if '\N{Greek Capital Letter Delta}cases/day' in fields:
+    #    tmpfields.remove('\N{Greek Capital Letter Delta}cases/day')
+    #if 'cases/day' in fields:
+    #    tmpfields.remove('cases/day')
     for field in tmpfields:
         sdf1[field] = sdf1[field].cumsum()
     
     # fighting for a good picture
     fig = Figure(figsize=(9,7))
-    if 'd²cases_dt²' in fields:
+    
+    #delta_fields = [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['delta_field']]
+    if set(fields).isdisjoint(delta_fields):               # fields has not delta_fields
+        ax = fig.subplots()
+    else:
         ax = fig.add_axes([0.1,0.35,0.8,0.6])  # left, bottom, width, height
         ax2 = fig.add_axes([0.1,0.20,0.8,0.15], sharex=ax)
-    else:
-        ax = fig.subplots()
     
     xlabelrot = 80
     title  = _l('Observations about Covid-19 outbreak')
@@ -553,13 +610,13 @@ def draw_nations(df, country_name_field, country_names, fields, normalize=False,
     ax.legend()
     ax.set_title (title)
     ax.set_ylabel(ylabel)
-    if 'd²cases_dt²' not in fields:
+    if set(fields).isdisjoint(delta_fields):               # fields has not delta_fields
         ax.tick_params(axis='x', labelrotation=xlabelrot)
         ax.set_xlabel(xlabel)
         fig.subplots_adjust(bottom=0.2)
     
-    if 'd²cases_dt²' in fields:
-        fig = generate_figure(ax2, sdf1, country_names, columns=['d²cases_dt²'])
+    if not set(fields).isdisjoint(delta_fields):               # fields has delta_fields
+        fig = generate_figure(ax2, sdf1, country_names, columns=used_delta_fields)
         ax2.set_ylabel(y2label)
         ax2.tick_params(axis='x', labelrotation=xlabelrot)
         ax2.grid(True, linestyle='--')
@@ -587,9 +644,13 @@ def prepare_target(df, country_name_field, country_names, fields, normalize=Fals
         notallowed = set(fields)-allowed
         raise ValueError(_('%(function)s: these fields are not allowed: %(notallowed)s', function=fname, notallowed=notallowed))
 
-    # adding d2cases_dt2
-    if 'd²cases_dt²' in fields:
-        df['d²cases_dt²'] = df['cases'] - df['cases'].shift(-1)
+    # adding cases/day
+    if 'cases/day' in fields:
+        df['cases/day'] = df['cases']
+
+    # adding \N{Greek Capital Letter Delta}cases/day
+    if '\N{Greek Capital Letter Delta}cases/day' in fields:
+        df['\N{Greek Capital Letter Delta}cases/day'] = df['cases'] - df['cases'].shift(-1)
 
     if type(normalize) is not type(True):
         raise ValueError(_('%(function)s: on parameter <normalize>', function=fname))
@@ -655,13 +716,18 @@ def generate_figure(ax, df, countries, columns=None):
 
 # + ldfa,2020-05-17 to show a summary table of chosen observations
 def table_nations(df, country_name_field, country_names, fields, normalize=False, overlap=False):
-    '''summary table of chosen observations
+    '''summary table of daily and observations
     
     remarks: summary is by converting daily data to mean onto week data
     '''
     fname = 'table_nations'
     current_app.logger.debug(fname)
     
+    fields = fields.split('-')                         # list of fields to plot
+    if 'cases/day' in fields and 'cases' in fields:
+        fields.remove('cases/day')
+    fields = '-'.join(fields)
+
     # get specialized dataframe: only request fields and nations|continents
     edf = prepare_target(df, country_name_field, country_names, fields, normalize=False, overlap=False)
     
@@ -673,7 +739,9 @@ def table_nations(df, country_name_field, country_names, fields, normalize=False
     edf['dateRep'] = pd.to_datetime(edf['dateRep'])
     edf['week'] = edf['dateRep'].dt.week    # adding week number
     edf['year'] = edf['dateRep'].dt.year    # adding year
-    edf = edf.rename(columns=forms.FIELDS_IN_TABLE)    # renaming columns to avoid confusioni with names in graph
+    
+    #edf = edf.rename(columns=forms.FIELDS_IN_TABLE)    # renaming columns to avoid confusioni with names in graph
+    edf = edf.rename(columns={name: forms.FIELDS[name]['mean_tag'] for name in forms.FIELDS.keys()})    # renaming columns to avoid confusioni with names in graph
     edf_avg = edf.groupby(['year','week',country_name_field]).mean()
     
     sdf1 = pd.pivot_table(edf_avg, index=['year','week'],columns=country_name_field)
@@ -691,13 +759,18 @@ def table_last_values(df, country_name_field, country_names, fields, normalize=F
     edf = prepare_target(df, country_name_field, country_names, fields, normalize=False, overlap=False)
     fields = fields.split('-')                         # list of fields to manage
     
+    delta_fields = get_delta_fields()
+
     edf = edf.groupby(['dateRep', country_name_field]).sum()
     sdf1 = pd.pivot_table(edf, index='dateRep',columns=country_name_field)
     if sdf1 is None:
         raise ValueError(_('%(function)s: got an empty dataframe from pivot', function=fname))
     tmpfields = fields[:]
-    if 'd²cases_dt²' in fields:
-        tmpfields.remove('d²cases_dt²')
+    tmpfields = [field for field in fields if not field in delta_fields]
+    #if '\N{Greek Capital Letter Delta}cases/day' in fields:
+    #    tmpfields.remove('\N{Greek Capital Letter Delta}cases/day')
+    #if 'cases/day' in fields:
+    #    tmpfields.remove('cases/day')
     for field in tmpfields:
         sdf1[field] = sdf1[field].cumsum()
     sdf1 = sdf1.iloc[-1:]

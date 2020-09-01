@@ -17,7 +17,8 @@
                             {{ form.hidden_tag() }}
                             <p><span  style="font-style: italic;text-decoration: underline;">{{_('Kind of information') }}</span>
                                {{_('to display for every country or continent') }}.
-                               <a data-toggle="collapse" href="#explainInfo">{{ _('More info') }} ...</a>
+                               <a data-toggle="collapse" href="#explainInfo"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                               
                             </p>
                             <div class="collapse" id="explainInfo">
                                 <p>
@@ -29,11 +30,12 @@
                             </div>
                             <p>
                                 {# {{ form.fields.label }}<br> #}
-                                {{ form.fields(size=3, **{ 'data-toggle': 'tooltip',
-                                                           'data-placement': 'top',
-                                                           'data-delay': 1500,
-                                                           'title': TOOLTIP_TITLE
-                                                         }
+                                {{ form.fields(size=all_fields.keys()|length, **{ 'data-toggle': 'tooltip',
+                                                                                  'data-placement': 'top',
+                                                                                  'data-delay': 1500,
+                                                                                  'title': TOOLTIP_TITLE,
+                                                                                  'style': 'scrollbar-width: none;',
+                                                                                }
                                                )
                                 }}<br>
                                 {% for error in form.fields.errors %}
@@ -47,7 +49,7 @@
                         <div class="col-md-12">
                             <p><span  style="font-style: italic;text-decoration: underline;">{{_('Time interval') }}</span>
                                {{_('to show') }}.
-                               <a data-toggle="collapse" href="#explainDate">{{ _('More info') }} ...</a>
+                               <a data-toggle="collapse" href="#explainDate"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
                             </p>
                             <div class="collapse" id="explainDate">
                                 <p>
@@ -56,6 +58,8 @@
                                     <span style="font-weight: bold;">last</span>   {{ _('is the final day to plot') }}.
                                     <br>
                                     {{_('Date format is year-month-day: yyyy-mm-dd')}}.
+                                    <br>
+                                    <b>{{_('Warning')}}</b>: {{_('if you select a first>minimum_available_date, all data between the minimum available and your choice will be ignored. Accordingly showed data will start from zero')}}.
                                 </p>
                             </div>
                             <p>
@@ -75,16 +79,16 @@
                     <div class="row">
                         <div class="col-md-12">
                             <p><span  style="font-style: italic;text-decoration: underline;">{{_('Type of geographical entity')}}</span> {{_('to select') }}.
-                               <a data-toggle="collapse" href="#explainGeo">{{ _('More info') }} ...</a>
+                               <a data-toggle="collapse" href="#explainGeo"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
                             </p>
                         <div class="collapse" id="explainGeo">
                             <p>
                             <span style="font-weight: bold;">nations</span>    {{ _('enables the box to select from countries and territories; while') }},
                             <span style="font-weight: bold;">continents</span> {{ _('enables the box to select what continent(s) to display') }}.
                             <br>
-                            {{_('Continents definitions (so: what countries are in every continents) are from United Nations and/or Wikipedia')}}.
+                            {{_('Continents definitions (so: what countries are in every continent) are from United Nations and/or Wikipedia')}}.
                             <br>
-                            {{_('The population data in the databases are from the World Bank')}}.
+                            {{_('The population data in the database are from the World Bank')}}.
                             </p>
                         </div>
                             <p>
@@ -119,12 +123,13 @@
                     <p> <span  style="font-style: italic;text-decoration: underline;">{{ _('Continents') }}</span></p>
                     <p>
                         {# {{ form.continents.label }}<br> #}
-                        {{ form.continents(size=9, **{ 'id':       'continents',
-                                                       'disabled': 'true',
-                                                       'data-toggle':    'tooltip',
-                                                       'data-delay': 1500,
-                                                       'title': TOOLTIP_TITLE
-                                                     }
+                        {{ form.continents(size=continents|length, **{ 'id':       'continents',
+                                                                       'disabled': 'true',
+                                                                       'data-toggle':    'tooltip',
+                                                                       'data-delay': 1500,
+                                                                       'title': TOOLTIP_TITLE,
+                                                                       'style': 'scrollbar-width: none;',
+                                                                     }
                                           ) }}<br>
                         {% for error in form.continents.errors %}
                         <span style="color: red;">[{{ error }}]</span>

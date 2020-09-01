@@ -3,14 +3,17 @@
 
 
 # import std libs
+from datetime import date, timedelta
 import os
 import sys
 import unittest
 
 # import 3rd parties libs
 import pandas as pd
-from flask            import current_app, g, request, url_for
-from werkzeug.routing import Map, Rule, NotFound, RequestRedirect
+from flask              import current_app, g, request, url_for
+from flask_wtf          import FlaskForm
+from wtforms.validators import ValidationError
+from werkzeug.routing   import Map, Rule, NotFound, RequestRedirect
 
 
 
@@ -101,8 +104,8 @@ class ModelsTest(unittest.TestCase):
         self.assertEqual(len(models.AREAS.keys()), 4)
         self.assertEqual(models.areas_get_nation_name('EU', 'nations', models.AREAS), 'European_Union')
         self.assertEqual(models.areas_get_names('nations', models.AREAS), ['European_Union'])
-        
-        
+
+
 class ViewsTest(unittest.TestCase):
     '''this is to test views'''
     
@@ -170,8 +173,44 @@ class ViewsTest(unittest.TestCase):
         self.assertTrue(html.startswith('<html '))
         self.assertIn('<title>plot</title>', html)
         self.assertTrue(html.endswith('</html>'))
-        
 
+
+#sys.path.append('..')
+#from covid.forms import TimeRange, SelForm, SelectForm, OtherSelectForm
+class FormsTest(unittest.TestCase):
+    '''this is to unit test the bases of forms'''
+    
+    def setUp(self):
+        #self.app = create_app({ 'TESTING': True, })
+        self.today = date.today()
+        self.yesterday = self.today - timedelta(days=1)
+        self.tomorrow  = self.today + timedelta(days=1)
+        self.aftertomorrow = self.today + timedelta(days=2)
+        self.tr = forms.TimeRange(first=self.today, last=self.tomorrow)
+        
+    def tearDown(self):
+        pass
+        
+    def test_timerange_init(self):
+        self.assertEqual(self.today,    self.tr.first)
+        self.assertEqual(self.tomorrow, self.tr.last )
+        self.assertIn('Field must be',  self.tr.message )
+
+    def test_timerange_in_operator(self):
+        self.assertFalse( self.yesterday in self.tr )
+        self.assertTrue(  self.today     in self.tr )
+        self.assertTrue(  self.tomorrow  in self.tr )
+        self.assertFalse( self.aftertomorrow in self.tr )
+    
+    def test_timerange_call_operator(self):
+        fform = None
+        Ac = type('Aclass', (), {})
+        ffield = Ac()
+        ffield.data = self.today
+        self.assertIsNone( self.tr(fform, ffield) )
+        with self.assertRaises(ValidationError):
+            ffield.data = self.yesterday
+            self.tr(fform, ffield)
 
 
 if __name__ == '__main__':
@@ -180,4 +219,5 @@ if __name__ == '__main__':
     sys.path.insert(1, basedir)              # ndx==1 because 0 is reserved for local directory
     from covid import create_app             # NOW we find covid module if we import it
     from covid import models
+    from covid import forms
     unittest.main()

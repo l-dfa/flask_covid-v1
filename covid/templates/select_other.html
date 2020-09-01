@@ -17,7 +17,7 @@
                             {{ form.hidden_tag() }}
                             <p><span  style="font-style: italic;text-decoration: underline;">{{_('Kind of information') }}</span>
                                {{_('to display for selected query') }}.
-                               <a data-toggle="collapse" href="#explainInfo">{{ _('More info') }} ...</a>
+                               <a data-toggle="collapse" href="#explainInfo"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
                             </p>
                             <div class="collapse" id="explainInfo">
                                 <p>
@@ -29,11 +29,12 @@
                             </div>
                             <p>
                                 {# {{ form.fields.label }}<br> #}
-                                {{ form.fields(size=3, **{ 'data-toggle': 'tooltip',
-                                                           'data-placement': 'top',
-                                                           'data-delay': 1500,
-                                                           'title': TOOLTIP_TITLE
-                                                         }
+                                {{ form.fields(size=all_fields.keys()|length, **{ 'data-toggle': 'tooltip',
+                                                                                  'data-placement': 'top',
+                                                                                  'data-delay': 1500,
+                                                                                  'title': TOOLTIP_TITLE,
+                                                                                  'style': 'scrollbar-width: none;',
+                                                                                }
                                                )
                                 }}<br>
                                 {% for error in form.fields.errors %}
@@ -47,7 +48,7 @@
                         <div class="col-md-12">
                             <p><span  style="font-style: italic;text-decoration: underline;">{{_('Time interval') }}</span>
                                {{_('to show') }}.
-                               <a data-toggle="collapse" href="#explainDate">{{ _('More info') }} ...</a>
+                               <a data-toggle="collapse" href="#explainDate"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
                             </p>
                             <div class="collapse" id="explainDate">
                                 <p>

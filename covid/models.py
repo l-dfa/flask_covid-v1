@@ -61,52 +61,6 @@ def init_app(app):
     app.teardown_appcontext(close_df)
     
     
-#< START FUTURE, not now
-#def get_db():
-#    if 'db' not in g:
-#        g.db = sqlite3.connect(
-#            ':memory:',
-#            detect_types=sqlite3.PARSE_DECLTYPES
-#        )
-#        g.db.row_factory = sqlite3.Row
-#
-#    return g.db
-#
-#
-#def close_db(e=None):
-#    db = g.pop('db', None)
-#
-#    if db is not None:
-#        db.close()
-#
-#
-#schema_sql = '''
-#DROP TABLE IF EXISTS nation;
-#
-#CREATE TABLE nations (
-#  id        INTEGER PRIMARY KEY  AUTOINCREMENT,
-#  name      TEXT    NOT NULL     UNIQUE,
-#  type      TEXT    NOT NULL,
-#  continent_id  INTEGER REFERENCES nation(id) DEFERRABLE INITIALLY DEFERRED,
-#  federation_id INTEGER REFERENCES nation(id) DEFERRABLE INITIALLY DEFERRED,
-#);
-#'''
-#
-#def init_db():
-#    db = get_db()
-#
-#    with current_app.open_resource('schema.sql') as f:
-#        db.executescript(f.read().decode('utf8'))
-#
-#
-#@click.command('init-db')
-#@with_appcontext
-#def init_db_command():
-#    """Clear the existing data and create new tables."""
-#    init_db()
-#    click.echo('Initialized the database.')
-#< END   FUTURE, not now    
-
 class Nations(object):
     '''an istance of this class lists all nations present in dataframe,
     with their continent
@@ -398,26 +352,6 @@ def areas_get_nation_name(geoId, contest, areas=None):
         if v['contest'] == contest and v['geoId'] == geoId:
             return k
     return None
-
-
-## + ldfa 2020-05-15 managing geographic areas
-## - ldfa 2020-07-05 duplicate of areas_get_nation_name
-#def areas_get_key_from_id(geoId, contest, areas=None):
-#    '''get key given id from a 'geographic area definition' data structure
-#    
-#    params:
-#       - geoId                 str - id of area (2 letters)
-#       - contest               str - 'nations' | 'continents'
-#       - areas                 dict of dict - see: areas_get_nation_name(...) comment
-#    
-#    return str: area item key
-#           None if geoId not found
-#    '''
-#    if areas is None: areas = AREAS
-#    for k, v in areas.items():
-#        if v['contest'] == contest and v['geoId'] == geoId:
-#            return k
-#    return None
 
 
 # + ldfa 2020-05-11 managing geographic areas
