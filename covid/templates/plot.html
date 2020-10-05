@@ -8,31 +8,39 @@
                 {% if img_data %}
                     <div>
                         <h3>{{ _('Time trend of ...')}} </h3>
-                            <p> {{ _('... these observations related to Covid-19') }}:</p>
-                            <ul>
-                            {% for column in columns %}
-                                <li>{{ all_fields[column]['short']}}
-                                    <a data-toggle="collapse" href="#explain{{column|replace("/", "_")}}"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
-                                    <br>
-                                    <div class="collapse" id="explain{{column|replace("/", "_")}}">
-                                        <p>
-                                            <span style="font-weight: bold;">{{column}}</span>: {{ all_fields[column]['explanation'] }}
-                                        </p>
-                                    </div>
-                                </li>
-                            {% endfor %}
-                            </ul>
+                        <p> {{ _('... these observations related to Covid-19') }}:</p>
+                        <ul>
+                        {% for column in columns %}
+                            <li>{{ all_fields[column]['short']}}
+                                <a data-toggle="collapse" href="#explain{{column|replace("/", "_")}}"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                                <br>
+                                <div class="collapse" id="explain{{column|replace("/", "_")}}">
+                                    <p>
+                                        <span style="font-weight: bold;">{{column}}</span>: {{ all_fields[column]['explanation'] }}
+                                    </p>
+                                </div>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                        
+                        {% if normalize %}
+                        <div>
+                            <p>
+                            {{ _('as a ratio to the population of the geographic entities listed below') }};
+                            </p>
+                        </div>
+                        {% endif %}
                             
                         {% if countries %}
                         <div>
-                            {% if kwargs.contest == 'nations' %}
+                            {% if kwargs.context == 'nations' %}
                                 <p> {{ _('about these nations') }}:</p>
-                            {% elif kwargs.contest == 'continents'%}
+                            {% elif kwargs.context == 'continents'%}
                                 <p> {{ _('about these continents') }}:</p>
                             {% else %}
                                 <p> {{ _('about all the World') }}.</p>
                             {% endif %}
-                            {% if kwargs.contest == 'nations' or kwargs.contest == 'continents' %}
+                            {% if kwargs.context == 'nations' or kwargs.context == 'continents' %}
                                 <ul>
                                 {%for country in countries %}
                                     <li>{{ country }}
@@ -43,7 +51,7 @@
                                                 <p style="border: 1px solid; border-radius: 5px;">
                                                 {{ _('Countries in')}} {{country}} {{_('are:')}}
                                                 {% for nation in continents_composition[country].values() %}
-                                                    {{nation}} {% if loop.index != loop.length %}, {% endif%}
+                                                    {{nation}}{% if loop.index != loop.length %}, {% endif%}
                                                 {% endfor %}
                                                 </p>
                                             </div>
@@ -64,7 +72,7 @@
                         {% if overlap %}
                             <div>
                                 <p>{{ _('Beware of fact the below image overlap the lines of the different') }} 
-                                   {% if kwargs.contest == 'nations' %}
+                                   {% if kwargs.context == 'nations' %}
                                        {{ _('nations') }}.
                                    {% else %}
                                        {{ _('continents') }}.
@@ -74,10 +82,10 @@
                                    {{ threshold }} {{ _('cases in a couple of adjacent days') }}. </p>
                                 <p>{{ _('If you wish, you can') }}, <a href="{{ url_for('views.draw_graph', **kwargs) }}">{{ _('go back to the normal view') }}</a>. </p>
                             </div>
-                        {% elif countries|count > 1 and columns|count == 1 %}
+                        {% elif countries|count > 1 and columns|count == 1 and not normalize %}
                             <div>
                                 <p>{{ _('If you wish') }}, <a href="{{ url_for('views.draw_graph', **kwargs) }}">{{ _('you could overlap') }}</a> 
-                                {% if kwargs.contest == 'nations' %}
+                                {% if kwargs.context == 'nations' %}
                                     {{ _('the lines of these nations') }}.
                                 {% else %}
                                     {{ _('the lines of these continents') }}.

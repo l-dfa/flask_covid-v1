@@ -9,12 +9,17 @@
             {{ _('This site section is to show the time trend of Covid-19 outbreak') }}.</p>
             
             <p>
-            {{ _('Here you can select one or more') }} <a href="{{ url_for('views.select') }}">{{ _('nations or continents') }}</a> {{ _('to compare their time trend
-            of total cases of positive infection to the viruses. Please do not select too many nations, or the graph will be unreadable') }}.
+            {{ _('Here you can select one or more') }} <a href="{{ url_for('views.select') }}">{{ _('nations or continents') }}</a>
+            {{ _('to compare their time trend of total cases of positive infection to the viruses') }}.
+            {{ _('Please do not select too many nations, or the graph will be unreadable') }}.
+            {{ _('You can select a time interval to show the trend inside it')}}.
+            {{ _('In this case be warned that, by now, you lost data present in days before the chosen start of the time interval')}}.
             </p>
 
             <p>
             {{ _('Alternatively you can use') }} <a href="{{ url_for('views.other_select') }}">{{ _('some other query type') }}</a>.
+            {{ _('By now here you can check data about all the world as a unit') }}.
+            {{ _('However, be aware that you can select the World also as a continent in') }} <i>{{ _('nations or continents') }}</i>.
             </p>
 
             <p>
@@ -43,7 +48,7 @@
                 </p>
                 
                 <p>
-                {{ _('Cheers') }}.
+                Enjoy. ldfa
                 </p>
             </div>
             
@@ -56,11 +61,18 @@
             
             <div class="collapse" id="history">
                 <dl>
+                
+                    <dt>ver.1.2</dt>
+                        <dd>- {{_('UI: separating mandatory main fields (cases, deaths) from optional secondary fields (cases/day, ...)') }}</dd>
+                        <dd>- {{_("reorganizing select UI (fields, time interval, ... on top of user's window)") }}</dd>
+                        <dd>- {{_('adding ratio over population') }}</dd>
+                        <dd>- {{_('adding "Worst World" query in other select') }}</dd>
+                        <dd>- {{_('adding "Worst EU" query in other select') }}</dd>
                     <dt>ver.1.1</dt>
                     <dd>- {{_('adding field cases/day') }}</dd>
                     <dd>- {{_('changing denomination field d²cases_dt² to &Delta;cases/day') }}</dd>
                     <dd>- {{_('using bootstrap icons instead of "more info ..."') }}</dd>
-                    </dd>
+                    
                     <dt>ver.1.0</dt>
                     <dd>- {{_('adding possibility to show observations about the entire World') }}</dd>
                     <dt>ver.08</dt>

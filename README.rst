@@ -167,7 +167,7 @@ Using root account, in Bash, we install the application::
   pip install gunicorn                    # get gunicorn
   
   # application configuration
-  mkdir logs                              # here we'll put ngingx logs
+  mkdir logs                              # here we'll put nginx logs
   mkdir instance                          # application configuration
   mkdir instance\data
   mkdir instance\logs                     # and here application logs
@@ -263,7 +263,7 @@ restarting nginx::
 
 
   ln -s /etc/nginx/sites-available/your_site.com /etc/nginx/sites-enabled/
-  nginx -t                                                # check configuration sintax errors
+  nginx -t                                                # check configuration syntax errors
   systemctl restart nginx                                 # nginx restart
   wget https://your_site.com                              # for sure you'll get index.html, isn't it?
   

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% set TOOLTIP_TITLE = _('To select more items, hold the Ctrl key while click on them') %}
+
+{% block content %}
+    <div class="container" style="background-color:WhiteSmoke;overflow-y:auto;">
+        <form action="" method="post" novalidate>
+            <div class="row">
+                <div class="col-12">
+                    <h5>{{ _('Please, select below the informations you wish to plot') }}</h5>
+                </div>
+            </div>
+            {% block on_what_plot %}{% endblock %}
+            <div class="row">
+                <div class="col-md-3">
+                    {{ form.hidden_tag() }}
+                    <p><span  style="font-style: italic;text-decoration: underline;">{{_('Main information')}}</span>.
+                       <a data-toggle="collapse" href="#explainInfo"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                    </p>
+                    <div class="collapse" id="explainInfo">
+                        <p>
+                        {% for field in main_fields.keys() %}
+                            <span style="font-weight: bold;">{{field}}</span> {{ main_fields[field]['explanation'] }}{% if loop.index != loop.length %};<br>{% endif%}
+                        {% endfor %}.
+                        </p>
+                        <p>
+                        {{_('Let we do an analogy with a trip by car')}}.
+                        {{_('These measures are the equivalent of the total distance covered by our trip')}}.
+                        </p>
+                        
+                    </div>
+                    <p>
+                        {# {{ form.mfields.label }}<br> #}
+                        {{ form.mfields(size=main_fields.keys()|length, **{ 'data-toggle': 'tooltip',
+                                                                          'data-placement': 'top',
+                                                                          'data-delay': 1500,
+                                                                          'title': TOOLTIP_TITLE,
+                                                                          'style': 'scrollbar-width: none;',
+                                                                        }
+                                       )
+                        }}<br>
+                        {% for error in form.mfields.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                        {% endfor %}
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <p><span  style="font-style: italic;text-decoration: underline;">{{_('Secondary information')}}</span>.
+                       <a data-toggle="collapse" href="#explainSInfo"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                    </p>
+                    <div class="collapse" id="explainSInfo">
+                        <p>
+                        {% for field in secondary_fields.keys() %}
+                            <span style="font-weight: bold;">{{field}}</span> {{ secondary_fields[field]['explanation'] }}{% if loop.index != loop.length %};<br>{% endif%}
+                        {% endfor %}.
+                        </p>
+                        <p>
+                        {{_('Again, with our analogy of a trip by car')}}:
+                        {{_('the first measure (cases/day) is the equivalent of the velocity of our car')}},
+                        {{_('while the second measure (&Delta;cases/day) is the equivalent of the acceleration in our trip')}}.
+                        </p>
+                        
+                    </div>
+                    <p>
+                        {# {{ form.sfields.label }}<br> #}
+                        {{ form.sfields(size=secondary_fields.keys()|length, **{ 'data-toggle': 'tooltip',
+                                                                          'data-placement': 'top',
+                                                                          'data-delay': 1500,
+                                                                          'title': TOOLTIP_TITLE,
+                                                                          'style': 'scrollbar-width: none;',
+                                                                        }
+                                       )
+                        }}<br>
+                        {% for error in form.sfields.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                        {% endfor %}
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <p><span  style="font-style: italic;text-decoration: underline;">{{_('Ratio to population') }}</span>.
+                       <a data-toggle="collapse" href="#explainRatio"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                    </p>
+                    <div class="collapse" id="explainRatio">
+                        <p>
+                            {{ _('If you check this control, application will show you a ratio between information(s)
+                                  you chose and the population of the selected nation(s)')}}.
+                        </p>
+                        
+                    </div>
+                    <p>
+                        {# {{ form.ratio_to_population.label }}:<br> #}
+                        {{ form.ratio_to_population() }}<br>
+                        {% for error in form.ratio_to_population.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                        {% endfor %}
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <p><span  style="font-style: italic;text-decoration: underline;">{{_('Time interval')}}</span>.
+                       <a data-toggle="collapse" href="#explainDate"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                    </p>
+                    <div class="collapse" id="explainDate">
+                        <p>
+                            <span style="font-weight: bold;">first</span> {{ _('is the initial day to plot') }},
+                            <br>
+                            <span style="font-weight: bold;">last</span>   {{ _('is the final day to plot') }}.
+                            <br>
+                            {{_('Date format is year-month-day: yyyy-mm-dd')}}.
+                            <br>
+                            <b>{{_('Warning')}}</b>: {{_('if you select a first>minimum_available_date, all data between the minimum available and your choice will be ignored. Accordingly showed data will start from zero')}}.
+                        </p>
+                    </div>
+                    <p>
+                        {{ form.first.label }}: <span style="position: absolute; left:60px;">{{ form.first }}</span><br>
+                        {% for error in form.first.errors %}
+                            <span style="color: red;">[{{ error }}]</span>
+                        {% endfor %}<br>
+                        {{ form.last.label }}: <span style="position: absolute; left:60px;">{{ form.last }}</span><br>
+                        {% for error in form.last.errors %}
+                            <span style="color: red;">[{{ error }}]</span>
+                        {% endfor %}
+                        
+                    </p>
+                </div>
+            </div>
+            <hr style="margin: 0em;" />
+
+            <!-- selection block content -->
+            {% block selection_lists %}{% endblock %}
+
+            <div class="row">
+                <div class="col-md-12">
+                    <p style=" margin-top: -3em;">{{ form.submit(**{ 'class': 'btn btn-primary',
+                                                                     'style': 'float: right;',
+                                                                   }) }}</p>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}
