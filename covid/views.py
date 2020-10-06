@@ -249,16 +249,11 @@ def other_select():
     
     form.query.choices = forms.OTHER_CHOICES
     
-    #< TRY + ldfa,2020-10-04 does form.process() resolve this problem?
-    time_range1 = forms.TimeRange(FIRST, LAST)   #+
-    form.first.validators.append(time_range1)    #+
-    form.last.validators.append(time_range1)     #+
-    
-    #< TRY - ldfa,2020-10-04 does form.process() resolve this problem?
-    #if request.method=='POST':
-    #    time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
-    #    form.first.validators.append(time_range1)    #+-
-    #    form.last.validators.append(time_range1)     #+-
+    # TRY - ldfa,2020-10-04 does form.process() resolve this problem? No, it doesn't
+    if request.method=='POST':
+        time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
+        form.first.validators.append(time_range1)    #+-
+        form.last.validators.append(time_range1)     #+-
 
     if form.validate_on_submit():
         # chaining names of fields to plot
@@ -277,8 +272,8 @@ def other_select():
         last  = form.last.data
         
         #< TRY - ldfa,2020-10-04 does form.process() resolve this problem?
-        #form.first.validators.remove(time_range1)  # fix bug #2: we need to remove timerange validators to destroy them
-        #form.last.validators.remove(time_range1)   #    otherwise they will be reused in succedings calls
+        form.first.validators.remove(time_range1)  # fix bug #2: we need to remove timerange validators to destroy them
+        form.last.validators.remove(time_range1)   #    otherwise they will be reused in succedings calls
 
         # check query type
         query = form.query.data[:]
@@ -341,14 +336,14 @@ def other_select():
             raise ValueError(_('%(function)s: %(query)s is not a valid query', function=fname, query=query))
 
     
-    #< TRY - ldfa,2020-10-04 does form.process() resolve this problem?
-    #try:                                           # again: removing timerange validators. see previous comment
-    #    if time_range1 in form.first.validators:
-    #        form.first.validators.remove(time_range1)
-    #    if time_range1 in form.last.validators:
-    #        form.last.validators.remove(time_range1)
-    #except:
-    #    pass
+    #< TRY - ldfa,2020-10-04 does form.process() resolve this problem? No, it doesn't
+    try:                                           # again: removing timerange validators. see previous comment
+        if time_range1 in form.first.validators:
+            form.first.validators.remove(time_range1)
+        if time_range1 in form.last.validators:
+            form.last.validators.remove(time_range1)
+    except:
+        pass
     
     form.first.default = FIRST # and this sets a default date
     form.last.default  = LAST

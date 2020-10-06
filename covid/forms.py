@@ -215,7 +215,7 @@ class SelForm(FlaskForm):
             return False
         
         if(self.last.data<self.first.data):
-            self.last.errors.append(_l('it must be %(first)s <= %(last)s ', 
+            self.last.errors.append(_l('it must be "from" %(first)s <= "to" %(last)s ', 
                                        first=self.first.data.strftime('%Y-%m-%d'),
                                        last=self.last.data.strftime('%Y-%m-%d')))
             return False
