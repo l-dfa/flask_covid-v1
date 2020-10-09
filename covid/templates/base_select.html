@@ -77,23 +77,50 @@
                     </p>
                 </div>
                 <div class="col-md-3">
-                    <p><span  style="font-style: italic;text-decoration: underline;">{{_('Ratio to population') }}</span>.
-                       <a data-toggle="collapse" href="#explainRatio"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
-                    </p>
-                    <div class="collapse" id="explainRatio">
-                        <p>
-                            {{ _('If you check this control, application will show you a ratio between information(s)
-                                  you chose and the population of the selected nation(s)')}}.
-                        </p>
-                        
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><span  style="font-style: italic;text-decoration: underline;">{{_('Ratio to population') }}</span>.
+                               <a data-toggle="collapse" href="#explainRatio"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                            </p>
+                            <div class="collapse" id="explainRatio">
+                                <p>
+                                    {{ _('If you check this control, application will show you a ratio between information(s)
+                                          you chose and the population of the selected nation(s)')}}.
+                                </p>
+                                
+                            </div>
+                            <p>
+                                {# {{ form.ratio_to_population.label }}:<br> #}
+                                {{ form.ratio_to_population() }}<br>
+                                {% for error in form.ratio_to_population.errors %}
+                                <span style="color: red;">[{{ error }}]</span>
+                                {% endfor %}
+                            </p>
+                        </div>
                     </div>
-                    <p>
-                        {# {{ form.ratio_to_population.label }}:<br> #}
-                        {{ form.ratio_to_population() }}<br>
-                        {% for error in form.ratio_to_population.errors %}
-                        <span style="color: red;">[{{ error }}]</span>
-                        {% endfor %}
-                    </p>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p><span  style="font-style: italic;text-decoration: underline;">{{_('Remember base data') }}</span> {{_('in case of Time Interval selection') }}.
+                               <a data-toggle="collapse" href="#explainRemeber"><span><img src="/static/images/bootstrap-icons-1.0.0/question-circle.svg" alt="" width="16" height="16" title="more_info"></span></a>
+                            </p>
+                            <div class="collapse" id="explainRemeber">
+                                <p>
+                                    {{ _('If you check this control, and you choose a first day to plot greater than the first available') }},
+                                    {{ _('application will remeber data happened between the first day available and the chosen day') }}.
+                                    {{ _('I you do not check this control in the above condition, application will forget these data') }},
+                                    {{ _('and graph will start from zero at the first day')}}.
+                                </p>
+                                
+                            </div>
+                            <p>
+                                {# {{ form.remember.label }}:<br> #}
+                                {{ form.remember() }}<br>
+                                {% for error in form.remember.errors %}
+                                <span style="color: red;">[{{ error }}]</span>
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-3">
                     <p><span  style="font-style: italic;text-decoration: underline;">{{_('Time interval')}}</span>.

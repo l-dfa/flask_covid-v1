@@ -67,9 +67,9 @@ class URLsTest(unittest.TestCase):
 
     def test_draw_url_resolves_to_draw_graph_page_view(self):
         ''' /graph/<contest>/<ids>/<fields>/<normalize>/<overlap>/<first>/<last>  -> views.draw_graph'''
-        with self.app.test_request_context('/graph/nations/it-fr/cases/false/false/2020-01-01/2020-03-31'):
+        with self.app.test_request_context('/graph/nations/it-fr/cases/false/false/2020-01-01/2020-03-31/false'):
             urls = self.app.url_map.bind_to_environ(request.environ)
-            endpoint, arguments = urls.match('/graph/nations/it-fr/cases/false/false/2020-01-01/2020-03-31', 'GET')
+            endpoint, arguments = urls.match('/graph/nations/it-fr/cases/false/false/2020-01-01/2020-03-31/false', 'GET')
         self.assertEqual(endpoint, 'views.draw_graph')
         self.assertEqual(arguments['context'], 'nations')
         self.assertEqual(arguments['ids'], 'it-fr')
@@ -237,6 +237,11 @@ class ModelsTest(unittest.TestCase):
         '''test select_row_by_dates'''
         ndf = models.select_rows_by_dates(self.df, date(2020, 3, 1), date(2020, 3, 31))
         self.assertEqual(ndf.shape, (8,11))
+        ndf = models.select_rows_by_dates(self.df, date(2020, 3, 26), date(2020, 4, 30), remember=True)
+        self.assertEqual(ndf.shape, (10,11))
+        #cases = ndf[ndf['countriesAndTerritories']=='Austria']['cases'].values.item()
+        cases = ndf[ndf['countriesAndTerritories']=='Austria'].iloc[0]['cases']
+        self.assertEqual(cases, 100)
 
     def test_subset_cols(self):
         ndf = models.subset_cols(self.df, ['dateRep', 'countriesAndTerritories', 'cases'])
@@ -344,7 +349,8 @@ class ViewsTest(unittest.TestCase):
                                                            normalize='False', 
                                                            overlap='False',
                                                            first='2020-04-24',
-                                                           last='2020-04-24'
+                                                           last='2020-04-24',
+                                                           remember=False
                                                           )
                              )
     
@@ -372,7 +378,7 @@ class ViewsTest(unittest.TestCase):
         ''' //graph/nations/AF-AL/cases/True/True/2020-04-24/2020-04-30      -> views.draw_graph'''
         with self.assertRaises(ValueError):
             with self.app.test_client() as client:
-                response = client.get('/graph/nations/AF-AL/cases/True/True/2020-04-24/2020-04-30')
+                response = client.get('/graph/nations/AF-AL/cases/True/True/2020-04-24/2020-04-30/False')
 
     def test_query_patterns(self):
         # 1. test canonical nations
@@ -431,7 +437,7 @@ class FormsTest(unittest.TestCase):
         self.yesterday = self.today - timedelta(days=1)
         self.tomorrow  = self.today + timedelta(days=1)
         self.aftertomorrow = self.today + timedelta(days=2)
-        self.tr = forms.TimeRange(first=self.today, last=self.tomorrow)
+        self.tr = forms.Range(min=self.today, max=self.tomorrow)
         
     def tearDown(self):
         pass
@@ -450,8 +456,8 @@ class FormsTest(unittest.TestCase):
         self.assertEqual(names, 'cases-cases/day')
         
     def test_timerange_init(self):
-        self.assertEqual(self.today,    self.tr.first)
-        self.assertEqual(self.tomorrow, self.tr.last )
+        self.assertEqual(self.today,    self.tr.min)
+        self.assertEqual(self.tomorrow, self.tr.max )
         self.assertIn('Field must be',  self.tr.message )
 
     def test_timerange_in_operator(self):

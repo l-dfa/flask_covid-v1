@@ -11,16 +11,18 @@
             <p>
             {{ _('Here you can select one or more') }} <a href="{{ url_for('views.select') }}">{{ _('nations or continents') }}</a>
             {{ _('to compare their time trend of total cases of positive infection to the viruses') }}.
-            {{ _('Please do not select too many nations, or the graph will be unreadable') }}.
+            {{ _('Please do not select too many nations, or the graph will be unreadable') }}.<br>
             {{ _('You can select a time interval to show the trend inside it')}}.
-            {{ _('In this case be warned that, by now, you lost data present in days before the chosen start of the time interval')}}.
+            {{ _('In this case be warned that you can') }} <i>{{ _('forget') }}</i>, {{ _('or not, data present in days before the chosen start of the time interval')}}.
+            {{ _('To forget data before a given date could be useful to analize duly the trend of the infection in a specific time interval')}}.
             </p>
 
             <p>
             {{ _('Alternatively you can use') }} <a href="{{ url_for('views.other_select') }}">{{ _('some other query type') }}</a>.
             {{ _('Here you can check data about') }} <i>{{ _('all the world') }}</i> {{ _('as a unit') }},
             {{ _('or about the') }} <i>{{ _('N worst nations in the world') }}</i>, {{ _('and others') }}.
-            {{ _('Be aware that you can select the World also as a continent in') }} <i>{{ _('nations or continents') }}</i>.
+            {{ _('Be aware that you can select the World also as a continent in') }} <i>{{ _('nations or continents') }}</i>.<br>
+            {{ _('In this windows you have the same types of controls present in') }} <i>{{ _('nations or continents') }}</i> {{ _('to build the wanted query') }}.
             </p>
 
             <p>
@@ -62,7 +64,11 @@
             
             <div class="collapse" id="history">
                 <dl>
-                
+                    <dt>1.3</dt>
+                        <dd>- {{ _('preserve initial cases/deaths in case of time interval')}} </dd>
+                        <dd>- {{ _('check on "Interval" in other_select')}} </dd>
+                        <dd>- {{ _('reorganize table about last day data')}} </dd>
+                        <dd>- {{ _('some bug fixing')}} </dd>
                     <dt>ver.1.2</dt>
                         <dd>- {{_('UI: separating mandatory main fields (cases, deaths) from optional secondary fields (cases/day, ...)') }}</dd>
                         <dd>- {{_("reorganizing select UI (fields, time interval, ... on top of user's window)") }}</dd>

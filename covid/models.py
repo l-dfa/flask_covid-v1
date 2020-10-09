@@ -335,7 +335,6 @@ def add_cols(df, cols):
     return df_result
 
 
-#< DA RIPROVARE
 def calculate_cumulative_sum(df, fields, normalize=False):
     '''give a dataframe with cumulative sums
     
@@ -567,8 +566,20 @@ def worst_countries(df, field, countries, lndx, rndx, normalize=False):
     if rndx-lndx-1>=len(countries):
         return countries[:]
     
-    # make a copy, drop unnecessary columns (we need field and geoId only)
+    # make a copy, expand it by eventual areas nations, drop unnecessary columns (we need field and geoId only)
     ndf = df.copy()
+    
+    areas = []                                                    # START expand it by eventual areas nations
+    for country in countries:
+        try:
+            if len(GeoEntities.get_entity_att(country, 'nations')) > 1:
+                areas.append(country)
+        except:
+            pass
+    if len(areas) > 0:
+        areas_df = create_rows_by_areas(df, areas, 'nations')
+        ndf = pd.concat([ndf, areas_df])                          # END   expand it by eventual areas nations
+        
     columns = ndf.columns.to_list()
     columns.remove(field)
     columns.remove('geoId')
@@ -744,10 +755,42 @@ def create_rows_by_areas(df, ids, context, pop_field='popData2019'):
     return df_result
 
 
-def select_rows_by_dates(df, first, last):
+def select_rows_by_dates(df, first, last, remember=False):
+    '''drops rows with date out of the indicated [first, last] time interval
+    
+    params:
+        -df          pandas dataframe - to analize
+        - first      datetime.date - left extreme of time interval
+        - last       datetime.date - right extreme of time interval
+        - remember   bool - if true sum values in dropped rows on the 1st surviving row
+                            considering countriesAndTerritories field as a grouping criterion
+    
+    return a new pandas dataframe
     '''
-    '''
-    return df[(df['dateRep']>=first) & (df['dateRep']<=last)]
+    fname = 'select_rows_by_dates'
+    min_date = df['dateRep'].min()
+    ti_df = df[(df['dateRep']>=first) & (df['dateRep']<=last)]    # result candidate: time interval dataframe; this has rows in indicated time interval
+    if not remember or first <= min_date:
+        result= ti_df
+    else:
+        # here we calculate cases and deaths totals for every country ...
+        base_df = df[(df['dateRep']<first)]
+        cols_to_drop = [col for col in base_df.columns.to_list() if col not in {'countriesAndTerritories', 'cases', 'deaths',}]
+        base_df = base_df.drop(cols_to_drop, axis='columns')
+        base_df = base_df.set_index('countriesAndTerritories').groupby(level=[0]).sum()  # ... this is: country (as index), (total)cases, (total)deaths
+        
+        # ... and now we need sum up these totals on the min day of each country
+        ti_df2 = ti_df.set_index(['countriesAndTerritories', 'dateRep'])
+        for country in base_df.index.to_list():
+            try:
+                country_min_date = ti_df[(ti_df['countriesAndTerritories']==country)]['dateRep'].min()
+                ti_df2.at[(country, country_min_date,), 'cases']  = ti_df2.at[(country, country_min_date,), 'cases'] + base_df.at[country, 'cases']
+                ti_df2.at[(country, country_min_date,), 'deaths'] = ti_df2.at[(country, country_min_date,), 'deaths'] + base_df.at[country, 'deaths']
+            except:
+                pass
+        result = ti_df2.reset_index()             # ... and here we have result, with cases and deaths of days before first summed up to first
+   
+    return result
 
 
 def world_shape(df):

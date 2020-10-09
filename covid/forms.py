@@ -20,7 +20,7 @@ from wtforms     import (
 )
 from wtforms.fields.html5     import DateField
 #from wtforms.validators import DataRequired
-from wtforms.validators import InputRequired, ValidationError
+from wtforms.validators import InputRequired, ValidationError, NumberRange
 
 # application libs import
 
@@ -74,7 +74,7 @@ def dict_delta_fields(direct=True):
         return {name: vals for name, vals in FIELDS.items() if FIELDS[name]['delta_field']}
     else:
         return {name: vals for name, vals in FIELDS.items() if not FIELDS[name]['delta_field']}
-    
+
 
 def list_delta_fields(direct=True):
     '''list delta fields from FIELDS
@@ -99,6 +99,7 @@ def list_delta_fields(direct=True):
         return [name for name in FIELDS.keys() if FIELDS[name]['delta_field']]
     else:
         return [name for name in FIELDS.keys() if not FIELDS[name]['delta_field']]
+
 
 def fields_from_names_to_sids(fields):        # + ldfa@2020.09.09 getting from views.py
     '''converts form.FIELD names to form.FIELD symbolic ids
@@ -128,68 +129,23 @@ def fields_from_sids_to_names(fields):       # + ldfa@2020.09.09 getting from vi
     return '-'.join(names)
 
 
-class TimeRange(object):
-    '''validate  time range set at init time, or later
-    note. it uses datetime.date as internal data
-    '''
-    def __init__(self, first=None, last=None, message=None):
-        #fname = 'TimeRange().__init__'
-        #current_app.logger.debug('> {}(self={},first={},last={},message={})'.format(fname, self, first, last, message))
-        if not first:
-            first = date.today()
-        if not last:
-            last = date.today()
-        if not message:
-            message = _l('Field must be between %s and %s') % (first.strftime('%Y-%m-%d'), last.strftime('%Y-%m-%d'))
-        self.first = first
-        self.last  = last
-        self.message = message
-        
-    def set_first(self, first):
-        #fname = 'TimeRange().set_first'
-        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, first))
-        self.first = first
-
-    def set_last(self, last):
-        #fname = 'TimeRange().set_last'
-        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, last))
-        self.last = last
-        
-    #+ ldfa@2020-08-17 simplifying
-    def __contains__(self, item):
-        return self.first <= item and item <= self.last
-
-    #+ ldfa@2020-08-17 simplifying
-    def __call__(self, form, field):
-        fname = 'TimeRange().__call__'
-        #current_app.logger.debug('> {}(self={},form={},field={})'.format(fname, self, form, field))
-        if not field.data in self:
-            #current_app.logger.info('> {}(self={},form={},field={}) - < ValidationError TRIGGERED'.format(fname, self, form, field))
-            raise ValidationError(self.message)
-
-
-class Interval(object):
+class Range(NumberRange):
     '''validate  interval range set at init time, or later
-    note. it uses n1 as left extreme point of the interval, while n2 is the right extreme point
+    note. it uses min and max as included extreme points of the interval
     '''
-    def __init__(self, n1=1, n2=1, message=None):
+    def __init__(self, min=None, max=None, message=None):
         if not message:
-            message = _l('Field must be between %s and %s') % (n1, n2)
-        self.n1 = n1
-        self.n2 = n2
-        self.message = message
-        
-    def set_n1(self, n1):
-        self.n1 = n1
-
-    def set_n2(self, n2):
-        self.n2 = n2
+            message = _l('Field must be between %s and %s') % (min, max)
+        #super().__init__(min=min, max=max, message=message)
+        self.min = min
+        self.max = max
+        self.message=message[:]
         
     def __contains__(self, item):
-        return self.n1 <= item and item <= self.n2
+        return self.min <= item and item <= self.max
 
     def __call__(self, form, field):
-        fname = 'TimeRange().__call__'
+        fname = 'Interval().__call__'
         if not field.data in self:
             raise ValidationError(self.message)
 
@@ -205,8 +161,9 @@ class SelForm(FlaskForm):
     mfields  = SelectMultipleField( _l('Type_of_main_fields'), validators=[InputRequired()], default=['1'])
     sfields  = SelectMultipleField( _l('Type_of_secondary_fields'), validators=[])
     ratio_to_population = BooleanField( _l('Ratio to population'), default=False)
-    first   = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')    # note: adding TimeRange() here as a validator does not work
-    last    = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')    #    'cause here we cannot get the FIRST and LAST dates to use to initialize it
+    remember = BooleanField( _l('Remember'), default=False)
+    first    = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')    # note: adding TimeRange() here as a validator does not work
+    last     = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')    #    'cause here we cannot get the FIRST and LAST dates to use to initialize it
                                                                                         #    so, we'll need to append it in views
     submit  = SubmitField( _l('plot'))
     
@@ -246,28 +203,118 @@ class SelectForm(SelForm):
             return False
         
         return True
-   
-   
+
+
 class OtherSelectForm(SelForm):
     '''form to select some other type of query
     
        by now: world
     '''
     query   = RadioField( _l('Type_of_query'), validators=[InputRequired()], default='World')
-    n1 = IntegerField(_l('Left index'))
-    n2 = IntegerField(_l('Right index'))
-    
+    n1 = IntegerField(_l('Left index'),  validators=[NumberRange(min=1)], default=1)
+    n2 = IntegerField(_l('Right index'), validators=[NumberRange(max=15)], default=15)
     
     def validate_on_submit(self):
         if not super().validate_on_submit():
             return False
-        
+        if(self.n2.data<self.n1.data):
+            self.n2.errors.append(_l('it must be "from" %(n1)s <= "to" %(n2)s ', 
+                                       n1=self.n1.data,
+                                       n2=self.n2.data))
+            return False
         return True
-    
-    
 
 
 # START section about deleted code
+
+#class Interval(object):
+#    '''validate  interval range set at init time, or later
+#    note. it uses left and right as included extreme points of the interval
+#    '''
+#    def __init__(self, left=None, right=None, message=None):
+#        if not message:
+#            message = _l('Field must be between %s and %s') % (left, right)
+#        self.left  = left
+#        self.right = right
+#        self.message = message
+#        
+#    def set_left(self, left):
+#        self.left = left
+#
+#    def set_n2(self, right):
+#        self.right = right
+#
+#    def get_left(self):
+#        return self.left
+#
+#    def get_right(self):
+#        return self.right
+#        
+#    def __contains__(self, item):
+#        return self.left <= item and item <= self.right
+#
+#    def __call__(self, form, field):
+#        fname = 'Interval().__call__'
+#        if not field.data in self:
+#            raise ValidationError(self.message)
+#
+#
+## +- ldfa,2020-10-08 subclassing timeRange form Interval
+#class TimeRange(Interval):
+#    '''validate  time range set at init time, or later
+#    note. it uses datetime.date as internal data
+#    '''
+#    def __init__(self, first=None, last=None, message=None):
+#        #fname = 'TimeRange().__init__'
+#        #current_app.logger.debug('> {}(self={},first={},last={},message={})'.format(fname, self, first, last, message))
+#        if not first:
+#            first = date.today()
+#        if not last:
+#            last = date.today()
+#        if not message:
+#            message = _l('Field must be between %s and %s') % (first.strftime('%Y-%m-%d'), last.strftime('%Y-%m-%d'))
+#        #self.first = first
+#        #self.last  = last
+#        #self.message = message
+#        super().__init__(left=first, right=last, message=message)
+#        
+#    def set_first(self, first):
+#        #fname = 'TimeRange().set_first'
+#        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, first))
+#        #self.first = first
+#        self.set_left(first)
+#
+#    def set_last(self, last):
+#        #fname = 'TimeRange().set_last'
+#        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, last))
+#        #self.last = last
+#        self.set_right(right)
+#
+#    def get_first(self):
+#        #fname = 'TimeRange().set_first'
+#        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, first))
+#        #self.first = first
+#        return self.get_left()
+#
+#    def get_last(self):
+#        #fname = 'TimeRange().set_last'
+#        #current_app.logger.debug('> {}(self={},{})'.format(fname, self, last))
+#        #self.last = last
+#        return self.get_right()
+#        
+#    # - ldfa,202-20-08 subclassing TimeRange from class Interval
+#    ##+ ldfa@2020-08-17 simplifying
+#    #def __contains__(self, item):
+#    #    return self.first <= item and item <= self.last
+#    #
+#    ##+ ldfa@2020-08-17 simplifying
+#    #def __call__(self, form, field):
+#    #    fname = 'TimeRange().__call__'
+#    #    #current_app.logger.debug('> {}(self={},form={},field={})'.format(fname, self, form, field))
+#    #    if not field.data in self:
+#    #        #current_app.logger.info('> {}(self={},form={},field={}) - < ValidationError TRIGGERED'.format(fname, self, form, field))
+#    #        raise ValidationError(self.message)
+
 
 # - ldfa,2020.09.27 converting
 #def dict_delta_fields(fd=None, direct=True):

@@ -150,7 +150,7 @@ def select():
     form.countries.choices.sort(key=lambda x: x[1])            # sort by name
 
     if request.method=='POST':
-        time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #2 initializing TimeRange for POST
+        time_range1 = forms.Range(FIRST, LAST)   #+- ldfa fix bug #2 initializing TimeRange for POST
         form.first.validators.append(time_range1)    #+-
         form.last.validators.append(time_range1)     #+-
 
@@ -173,6 +173,7 @@ def select():
         
         first = form.first.data
         last  = form.last.data
+        remember = form.remember.data
         
         # type of values: normal or normalized
         normalize = form.ratio_to_population.data
@@ -189,7 +190,8 @@ def select():
                                 normalize=normalize, 
                                 overlap=overlap,
                                 first=first,
-                                last=last
+                                last=last,
+                                remember=remember
                                )
                        )
     
@@ -224,7 +226,6 @@ def select():
                            continents=continents
                           )
 
-
 @bp.route('/other_select', methods=['GET', 'POST'])
 def other_select():
     '''other_select address: shows some precostituited queries to selct from a form'''
@@ -251,14 +252,13 @@ def other_select():
     
     # TRY - ldfa,2020-10-04 does form.process() resolve this problem? No, it doesn't
     if request.method=='POST':
-        time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
+        #time_range1 = forms.TimeRange(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
+        time_range1 = forms.Range(FIRST, LAST)   #+- ldfa fix bug #1 initializing TimeRange for GET AND FOR POST
         form.first.validators.append(time_range1)    #+-
         form.last.validators.append(time_range1)     #+-
 
     if form.validate_on_submit():
         # chaining names of fields to plot
-        #columns = [forms.FIELDS[name]['sid'] for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.fields.data ]
-        #columns = '-'.join(columns)
         mcolumns = [forms.FIELDS[name]['sid'] for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.mfields.data ]
         scolumns = [forms.FIELDS[name]['sid'] for name in forms.FIELDS.keys() if forms.FIELDS[name]['id'] in form.sfields.data ]
         all_columns = mcolumns + scolumns
@@ -270,13 +270,15 @@ def other_select():
         # getting time range
         first = form.first.data
         last  = form.last.data
-        
-        #< TRY - ldfa,2020-10-04 does form.process() resolve this problem?
+        remember = form.remember.data
+
+        # TRY - ldfa,2020-10-04 does form.process() resolve this problem? no, it doesn't
         form.first.validators.remove(time_range1)  # fix bug #2: we need to remove timerange validators to destroy them
         form.last.validators.remove(time_range1)   #    otherwise they will be reused in succedings calls
 
         # check query type
         query = form.query.data[:]
+        query_worst_set = {'Worst_World', 'Worst_EU', }
         if query == 'World':
             return redirect(url_for('views.draw_graph',    # redirect World query to continents/World
                                     context='continents',
@@ -285,14 +287,21 @@ def other_select():
                                     normalize=normalize,
                                     overlap=overlap,
                                     first=first,
-                                    last=last
+                                    last=last,
+                                    remember=remember
                                    )
                            )
-        elif query == 'Worst_World':
-            # get from n1 to n2 worst nations in EU and redirect query to nations/...
+        elif query in query_worst_set:
+            if query == 'Worst_World':
+                #idsl = models.GeoEntities.get_entity_att('World', 'nations')
+                w = models.GeoEntities()                      # all the world
+                w = w.get_entities_by_att('type', 'nation')   # nations only (EU included)
+                idsl = w.keys()
+            elif query == 'Worst_EU':
+                idsl = models.GeoEntities.get_entity_att('EU', 'nations')
+            # get from n1 to n2 worst nations in World and redirect query to nations/...
             n1 = form.n1.data
             n2 = form.n2.data
-            idsl = models.GeoEntities.get_entity_att('World', 'nations')
             idsl = models.worst_countries(g.df, all_columns[0], idsl, n1, n2, normalize=normalize)
             ids = '-'.join(idsl)
             return redirect(url_for('views.draw_graph',
@@ -302,24 +311,8 @@ def other_select():
                                     normalize=normalize,
                                     overlap=overlap,
                                     first=first,
-                                    last=last
-                                   )
-                           )
-        elif query == 'Worst_EU':
-            # get from n1 to n2 worst nations in EU and redirect query to nations/...
-            n1 = form.n1.data
-            n2 = form.n2.data
-            idsl = models.GeoEntities.get_entity_att('EU', 'nations')
-            idsl = models.worst_countries(g.df, all_columns[0], idsl, n1, n2, normalize=normalize)
-            ids = '-'.join(idsl)
-            return redirect(url_for('views.draw_graph',
-                                    context='nations',
-                                    ids=ids,
-                                    fields=columns, 
-                                    normalize=normalize,
-                                    overlap=overlap,
-                                    first=first,
-                                    last=last
+                                    last=last,
+                                    remember=remember
                                    )
                            )
         # ldfa: future reference
@@ -335,8 +328,7 @@ def other_select():
         else:
             raise ValueError(_('%(function)s: %(query)s is not a valid query', function=fname, query=query))
 
-    
-    #< TRY - ldfa,2020-10-04 does form.process() resolve this problem? No, it doesn't
+    # TRY - ldfa,2020-10-04 does form.process() resolve this problem? No, it doesn't
     try:                                           # again: removing timerange validators. see previous comment
         if time_range1 in form.first.validators:
             form.first.validators.remove(time_range1)
@@ -352,8 +344,9 @@ def other_select():
     form.n2.default = EU_NUM
 
     # + ldfa,2020-10-04
-    #< is it necessary to review the time validators behavior?
-    #<     because I suspect previous behaviour of TimeRange was due to lack of form.process()
+    # is it necessary to review the time validators behavior?
+    #     because I suspect previous behaviour of TimeRange was due to lack of form.process()
+    #     conclusion: no, TimeRange validators behaviour is unchanged by the presence of form.process()
     # next by https://stackoverflow.com/questions/31423495/how-to-dynamically-set-default-value-in-wtforms-radiofield
     #     about "How to dynamically set default value in WTForms RadioField?". This is valid even for integer fields
     #     warning: apply this ONLY AFTER the GET, not the POST
@@ -368,7 +361,7 @@ def other_select():
                           )
 
 
-def query_patterns(df, context, ids, first=None, last=None):
+def query_patterns(df, context, ids, first=None, last=None, remember=False):
     '''implements models.py query patterns
     
     parameters:
@@ -423,7 +416,7 @@ def query_patterns(df, context, ids, first=None, last=None):
     else:
         if first is None: first = df['dateRep'].min()
         if last  is None: last  = df['dateRep'].max()
-        ddf = models.select_rows_by_dates(df, first, last)
+        ddf = models.select_rows_by_dates(df, first, last, remember)
     
     #     ... this creates rows for areas as 'nations' or 'continents' depending on context
     df_areas = models.create_rows_by_areas(ddf, areas, context, pop_field=POP_FIELD)
@@ -443,8 +436,8 @@ def query_patterns(df, context, ids, first=None, last=None):
     
     return ndf
 
-@bp.route('/graph/<context>/<ids>/<fields>/<normalize>/<overlap>/<first>/<last>')
-def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, first=None, last=None):
+@bp.route('/graph/<context>/<ids>/<fields>/<normalize>/<overlap>/<first>/<last>/<remember>')
+def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, first=None, last=None, remember=False):
     '''show countries trend
        
     params: 
@@ -471,6 +464,7 @@ def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, fir
     # START parameters check
     normalize = True if normalize in {'True', 'true',} else False
     overlap   = True if overlap   in {'True', 'true',} else False
+    remember  = True if remember  in {'True', 'true',} else False
     
     if normalize and overlap:
         raise ValueError(_('%(function)s: got normalize and overlap both True; this is not acceptable', function=fname))
@@ -489,6 +483,7 @@ def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, fir
            'overlap':   overlap,
            'first':     first,
            'last':      last,
+           'remember':  remember,
            }
     
     #   check request context
@@ -498,7 +493,7 @@ def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, fir
     # END   parameters checks
     
     # here "new dataframe" (ndf) has (only) the necessary rows with daily data of cases and deaths
-    ddf = query_patterns(g.df, context, ids, first, last)
+    ddf = query_patterns(g.df, context, ids, first, last, remember)
     
     # managing fields: transforms field sids (from http get) to field names
     fields  = forms.fields_from_sids_to_names(fields)         # str to str
@@ -602,7 +597,8 @@ def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, fir
     if ndf is None:
         raise ValueError(_('%(function)s: got an empty dataframe from pivot; overlap is: %(overlap)s', function=fname, overlap=overlap))
 
-    img_data   = draw_nations(ndf, country_names, columns, normalize=normalize, overlap=overlap)
+    img_data, mc  = draw_nations(ndf, country_names, columns, normalize=normalize, overlap=overlap)  # image data, mc is missing countries
+    country_names = [country for country in country_names if country not in mc]
     html_table = table_nations(ddf, country_names, columns, normalize=normalize)
     html_table_last_values = table_last_values(ddf, country_names, columns, normalize=normalize)
 
@@ -623,12 +619,9 @@ def draw_graph(context, ids, fields='cases', normalize=False, overlap=False, fir
                            html_table_last_values=html_table_last_values,
                            html_table=html_table,
                            kwargs=kwargs,
+                           last_day=last
                           )
 
-
-# - ldfa,2020.09.27
-#def get_delta_fields():
-#    return [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['delta_field']]
 
 def get_used_delta_fields(fields):
     return   list(set(fields) & set(forms.list_delta_fields()))
@@ -677,7 +670,7 @@ def draw_nations(df, country_names, fields, normalize=False, overlap=False):
     y2label = _l('n.of cases')
     xlabel = _l('date') if not overlap else _l('days from overlap point')
     
-    fig = generate_figure(ax, df, country_names, columns=tmpfields)
+    fig, mc = generate_figure(ax, df, country_names, columns=tmpfields)      # figure, missing countries
     
     ax.grid(True, linestyle='--')
     ax.legend()
@@ -689,7 +682,7 @@ def draw_nations(df, country_names, fields, normalize=False, overlap=False):
         fig.subplots_adjust(bottom=0.2)
     
     if not set(fields).isdisjoint(delta_fields):               # fields has delta_fields
-        fig = generate_figure(ax2, df, country_names, columns=used_delta_fields)
+        fig, mc = generate_figure(ax2, df, country_names, columns=used_delta_fields)    # figure, missing countries
         ax2.set_ylabel(y2label)
         ax2.tick_params(axis='x', labelrotation=xlabelrot)
         ax2.grid(True, linestyle='--')
@@ -701,7 +694,7 @@ def draw_nations(df, country_names, fields, normalize=False, overlap=False):
     fig.savefig(buf, format="svg")
     soup = bs.BeautifulSoup(buf.getvalue(),'lxml')          # parse image
     img_data = soup.find('svg')                             # get image data only (<svg ...> ... </svg>)
-    return img_data
+    return img_data, mc
 
 
 def generate_figure(ax, df, countries, columns=None):
@@ -716,19 +709,24 @@ def generate_figure(ax, df, countries, columns=None):
     cm = plt.get_cmap('tab20')     # color map to use: max 20 countries
     ax.set_prop_cycle(color=[cm(1.*i/num_colors) for i in range(num_colors)])
     
+    missing_countries = []
+    
     for column, ltype in zip(columns, ['-', '--', '-.', ':'][0:len(columns)]):
         #for country, color in zip(countries, COLORS[0:len(countries)]):
         for country in countries:
-            ax.plot(df.index.values,          # x
-                    df[column][country],         # y
-                    ltype,
-                    #color=color,
-                    label=_('%(column)s of %(country)s', column=column, country=country)         # label in legend
-                   )
+            try:
+                ax.plot(df.index.values,          # x
+                        df[column][country],         # y
+                        ltype,
+                        #color=color,
+                        label=_('%(column)s of %(country)s', column=column, country=country)         # label in legend
+                       )
+            except:
+                missing_countries.append(country)
         
     fig = ax.get_figure()
 
-    return fig
+    return fig, missing_countries
 
 # +- ldfa,2020-09-18 modified, using a modeled dataframe
 # + ldfa,2020-05-17 to show a summary table of chosen observations
@@ -771,7 +769,7 @@ def table_nations(df, country_names, fields, normalize=False):
 
 # +- ldfa,2020-09-18 modified, using a modeled dataframe
 # + ldfa,2020-05-27 to show values of observations on last day
-def table_last_values(df, country_names, fields, normalize=False):
+def table_last_values0(df, country_names, fields, normalize=False):
     ''' show figures of last day about chosen observations
     '''
     fname = 'table_last_values'
@@ -810,8 +808,53 @@ def table_last_values(df, country_names, fields, normalize=False):
     return ndf1.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers
     
 
+# +- ldfa,2020-10-09 modified: countries as row index
+# +- ldfa,2020-09-18 modified, using a modeled dataframe
+# + ldfa,2020-05-27 to show values of observations on last day
+def table_last_values(df, country_names, fields, normalize=False):
+    ''' show figures of last day about chosen observations
+    '''
+    fname = 'table_last_values'
+    #current_app.logger.debug(fname)
+    
+    delta_fields = forms.list_delta_fields()
+
+    ndf = df.copy(deep=True)
+    if POP_FIELD in df.columns and not normalize:
+        del ndf[POP_FIELD]
+        
+    ndf = ndf.groupby(['dateRep', 'countriesAndTerritories']).sum()
+    ndf1 = pd.pivot_table(ndf, index='dateRep',columns='countriesAndTerritories')
+    if ndf1 is None:
+        raise ValueError(_('%(function)s: got an empty dataframe from pivot', function=fname))
+    tmpfields = [field for field in fields if not field in delta_fields]
+    
+    for field in tmpfields:
+        ndf1[field] = ndf1[field].cumsum()
+    ndf1 = ndf1.iloc[-1:]
+    
+    if normalize:
+        for field in tmpfields:
+            index = pd.MultiIndex.from_product([[field+'/pop.'], country_names])
+            ndf2 = ndf1[field].divide(ndf1[POP_FIELD])
+            ndf2.columns = index
+            ndf1 = ndf1.join(ndf2)
+            
+    resultdf = pd.DataFrame()                               # START trasposing to get countries as row index
+    for col, row in ndf1.columns.to_list():
+        resultdf.at[row, col] = ndf1[(col, row)].iloc[0]    # END   trasposing to get countries as row index
+
+    #return ndf1.to_html(buf=None, float_format=lambda x: '%10.4f' % x)
+    #return ndf1.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers
+    return resultdf.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers
+    
 
 # START section about deleted code
+
+# - ldfa,2020.09.27
+#def get_delta_fields():
+#    return [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['delta_field']]
+
 
 # - ldfa,2010-09-19 "World" query redirected to draw_graph. code kept for future reference
 #@bp.route('/query_graph/<query>/<fields>/<normalize>/<first>/<last>')
