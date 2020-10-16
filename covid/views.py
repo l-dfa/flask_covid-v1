@@ -808,6 +808,7 @@ def table_last_values0(df, country_names, fields, normalize=False):
     return ndf1.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers
     
 
+# + ldfa,2020-10-15 added control of nan in last row
 # +- ldfa,2020-10-09 modified: countries as row index
 # +- ldfa,2020-09-18 modified, using a modeled dataframe
 # + ldfa,2020-05-27 to show values of observations on last day
@@ -831,6 +832,20 @@ def table_last_values(df, country_names, fields, normalize=False):
     
     for field in tmpfields:
         ndf1[field] = ndf1[field].cumsum()
+
+    # START checking for nan in last row; if present we substitute it with last not nan value on the column
+    #     in case of nan in all the column, we give up
+    for field, country in ndf1.columns.to_list():
+        nrow, ncol = ndf1.shape
+        valid_row = -1
+        while pd.isnull(ndf1.iloc[valid_row][field, country]) and (valid_row+nrow) > 0:
+            valid_row -= 1
+        if valid_row==-1 or (valid_row+nrow)==0:
+            continue                              # ... if (valid_row+nrow)==0, all column is nan, here we give up
+        else:                                     # ... nas is present: we substitute it with last not nan value on the column
+            ndf1.iloc[-1][field, country] = ndf1.iloc[valid_row][field, country]
+    # END   checking for nan in last row
+    
     ndf1 = ndf1.iloc[-1:]
     
     if normalize:
@@ -840,9 +855,9 @@ def table_last_values(df, country_names, fields, normalize=False):
             ndf2.columns = index
             ndf1 = ndf1.join(ndf2)
             
-    resultdf = pd.DataFrame()                               # START trasposing to get countries as row index
+    resultdf = pd.DataFrame()                               # START transposing to get countries as row index
     for col, row in ndf1.columns.to_list():
-        resultdf.at[row, col] = ndf1[(col, row)].iloc[0]    # END   trasposing to get countries as row index
+        resultdf.at[row, col] = ndf1[(col, row)].iloc[0]    # END   transposing to get countries as row index
 
     #return ndf1.to_html(buf=None, float_format=lambda x: '%10.4f' % x)
     #return ndf1.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers

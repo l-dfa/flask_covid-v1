@@ -162,8 +162,8 @@ class SelForm(FlaskForm):
     sfields  = SelectMultipleField( _l('Type_of_secondary_fields'), validators=[])
     ratio_to_population = BooleanField( _l('Ratio to population'), default=False)
     remember = BooleanField( _l('Remember'), default=False)
-    first    = DateField(_l('from'), validators=[InputRequired()], format='%Y-%m-%d')    # note: adding TimeRange() here as a validator does not work
-    last     = DateField(_l('to'),   validators=[InputRequired()], format='%Y-%m-%d')    #    'cause here we cannot get the FIRST and LAST dates to use to initialize it
+    first    = DateField(_l('from'), id='tr_from', validators=[InputRequired()], format='%Y-%m-%d')    # note: adding TimeRange() here as a validator does not work
+    last     = DateField(_l('to'),   id='tr_to', validators=[InputRequired()], format='%Y-%m-%d')    #    'cause here we cannot get the FIRST and LAST dates to use to initialize it
                                                                                         #    so, we'll need to append it in views
     submit  = SubmitField( _l('plot'))
     

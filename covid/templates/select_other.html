@@ -1,12 +1,14 @@
 {% extends "base_select.html" %}
 
-{% block on_what_plot %}
+{#
+    {% block on_what_plot %}
             <div class="row">
                 <div class="col-md-12">
                 <p>{{_('For every quey')}}: </p>
                 </div>
             </div>
-{% endblock %}
+    {% endblock %}
+#}
 
 {% block selection_lists %}
                     <div class="row">
@@ -71,7 +73,7 @@
 {% endblock %}
 
 
-{% block javascript %}
+{% block other_javascript %}
     <script>
         $(function() {
                 var in_query = $("input[name=query]:checked").val();

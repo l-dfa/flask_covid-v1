@@ -1,12 +1,14 @@
 {% extends "base_select.html" %}
 
-{% block on_what_plot %}
+{#
+    {% block on_what_plot %}
             <div class="row">
                 <div class="col-md-12">
                 <p>{{_('For every selected country or continent')}}: </p>
                 </div>
             </div>
-{% endblock %}
+    {% endblock %}
+#}
 
 {% block selection_lists %}
 
@@ -73,7 +75,7 @@
 {% endblock %}
 
 
-{% block javascript %}
+{% block other_javascript %}
     <script>
         $(function (){$('[data-toggle="tooltip"]').tooltip()} )</script>
     <script>
