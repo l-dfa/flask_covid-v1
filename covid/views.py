@@ -848,146 +848,29 @@ def table_last_values(df, country_names, fields, normalize=False):
     
     ndf1 = ndf1.iloc[-1:]
     
-    if normalize:
-        for field in tmpfields:
-            index = pd.MultiIndex.from_product([[field+'/pop.'], country_names])
-            ndf2 = ndf1[field].divide(ndf1[POP_FIELD])
-            ndf2.columns = index
-            ndf1 = ndf1.join(ndf2)
+    # - ldfa,2020.10.27 to fix bug #7
+    #if normalize:
+    #    for field in tmpfields:
+    #        index = pd.MultiIndex.from_product([[field+'/pop.'], country_names])
+    #        ndf2 = ndf1[field].divide(ndf1[POP_FIELD])
+    #        ndf2.columns = index
+    #        ndf1 = ndf1.join(ndf2)
             
     resultdf = pd.DataFrame()                               # START transposing to get countries as row index
     for col, row in ndf1.columns.to_list():
         resultdf.at[row, col] = ndf1[(col, row)].iloc[0]    # END   transposing to get countries as row index
+        
+    # + ldfa,2020.10.27 to fix bug #7
+    if normalize:
+        for field in tmpfields:
+            resultdf[field+'/pop.'] = resultdf[field].divide(resultdf[POP_FIELD])
+            
 
     #return ndf1.to_html(buf=None, float_format=lambda x: '%10.4f' % x)
-    #return ndf1.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers
     return resultdf.to_html(buf=None, float_format="{:n}".format)                # a more flexible format to output numbers
     
-
-# START section about deleted code
-
-# - ldfa,2020.09.27
-#def get_delta_fields():
-#    return [name for name in forms.FIELDS.keys() if forms.FIELDS[name]['delta_field']]
-
-
-# - ldfa,2010-09-19 "World" query redirected to draw_graph. code kept for future reference
-#@bp.route('/query_graph/<query>/<fields>/<normalize>/<first>/<last>')
-#def draw_query_graph(query, fields='cases', normalize=False, first=None, last=None):
-#    '''show countries trend
-#       
-#    params: 
-#        - query         str - type of query: "world" by now
-#        - fields        str - string of concat fields to show; e.g. cases-deaths
-#        - normalize     str - 'True' | 'False'
-#        - first         str - start of time interval to draw, str format: aaaa-mm-dd
-#        - last          str - end of time interval to draw, str format: aaaa-mm-dd
-#    
-#    functions:
-#        - draw world cases
-#        - draw world deaths
-#    '''
-#
-#    fname = 'draw_query_graph'
-#    current_app.logger.debug('{}({}, {}, {}, {})'.format(fname, query, fields, first, last))
-#    
-#    # START parameters check
-#    normalize = True if normalize in {'True', 'true',} else False
-#    overlap = False
-#    
-#    first = datetime.strptime(first, '%Y-%m-%d').date() if first is not None else FIRST
-#    last  = datetime.strptime(last, '%Y-%m-%d').date() if last is not None else LAST
-#    
-#    if ( first<FIRST
-#         or first > last
-#         or last > LAST ):
-#        raise ValueError(_('%(function)s: it must be %(FIRST)s <= %(first)s <= %(last)s <= %(LAST)s',
-#                             function=fname,
-#                             FIRST=FIRST.strftime('%Y-%m-%d'),
-#                             first=first.strftime('%Y-%m-%d'),
-#                             last=last.strftime('%Y-%m-%d'),
-#                             LAST=LAST.strftime('%Y-%m-%d')))
-#    
-#    #   args to return here
-#    kwargs={'query':  query,
-#           'fields':    fields,
-#           'normalize': normalize,
-#           'first':     first,
-#           'last':      last,
-#          }
-#          
-#    #   check request context
-#    if query=='World':
-#        country_names = ['World',]
-#        country_name_field = 'countriesAndTerritories'
-#        g.df['countriesAndTerritories'] = 'World'
-#    else:
-#        raise ValueError(_('%(function)s: query %(query)s is not allowed', function=fname, query=query))
-#        
-#    # END   parameters checks
-#    
-#    # set time interval
-#    g.df = g.df[(g.df['dateRep']>=first) & (g.df['dateRep']<=last)]
-#    
-#    threshold = 0
-#    
-#    fields = forms.fields_from_sids_to_names(fields)
-#    
-#    img_data, threshold = draw_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=False)
-#    html_table = table_nations(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=False)
-#    html_table_last_values = table_last_values(g.df, country_name_field, country_names, fields, normalize=normalize, overlap=overlap)
-#    
-#    
-#    title = _('overlap') if overlap else _('plot')
-#    kwargs['overlap'] = overlap
-#    
-#    columns = fields.split('-')
-#    
-#    return render_template('plot.html',
-#                           title=title,
-#                           time_interval=(first, last,),
-#                           columns=columns,
-#                           all_fields=forms.FIELDS,
-#                           countries=country_names,
-#                           continents_composition=None,
-#                           overlap=overlap,
-#                           threshold=threshold,
-#                           img_data = img_data,
-#                           html_table_last_values=html_table_last_values,
-#                           html_table=html_table,
-#                           kwargs=kwargs,
-#                          )
-
-
-# - ldfa,2020-09-19 developed a completely new version
-#@bp.route('/graph/<contest>/<ids>/<fields>/<normalize>/<overlap>/<first>/<last>')
-#def draw_graph_0(contest, ids, fields='cases', normalize=False, overlap=False, first=None, last=None):
-
-
-# - ldfa,2020-09-19 developed a completely new version
-#def draw_nations0(df, country_name_field, country_names, fields, normalize=False, overlap=False):
-
-
-# - ldfa,2020-09-19 no more used
-#def prepare_target(df, country_name_field, country_names, fields, normalize=False, overlap=False):
-
-
-# - ldfa,2020-09-19 developed a completely new version
-# + ldfa,2020-05-17 to show a summary table of chosen observations
-#def table_nations0(df, country_name_field, country_names, fields, normalize=False, overlap=False):
-
-
-# - ldfa,2020-09-19 developed a completely new version
-# + ldfa,2020-05-27 to show values of observations on last day
-#def table_last_values0(df, country_name_field, country_names, fields, normalize=False, overlap=False):
-
-
-# - ldfa,2020-09-19 developed a completely new version
-#def suggest_threshold(df, country_name_field, column='cases', ratio=0.1):
-
-    
-# - ldfa,2020-09-19 developed a completely new version
-#def pivot_with_overlap(df, country_name_field, column= 'cases', threshold=THRESHOLD):
+# - ldfa,2020.10.27 emptied
+# START section about deleted code 
 
 
 # END   section about deleted code
